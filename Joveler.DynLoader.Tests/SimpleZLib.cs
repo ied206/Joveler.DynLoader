@@ -21,22 +21,11 @@ namespace Joveler.DynLoader.Tests
         {
             get
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                { // Call packaged zlibwapi.dll
-                    switch (RuntimeInformation.ProcessArchitecture)
-                    {
-                        case Architecture.X86:
-                            return Path.Combine("x86", "zlibwapi");
-                        case Architecture.X64:
-                            return Path.Combine("x64", "zlibwapi");
-                        default:
-                            return "zlibwapi";
-                    }
-                }
-                else
-                { // Call system default libz
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                    RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     return "libz";
-                }
+
+                throw new PlatformNotSupportedException();
             }
         }
         #endregion

@@ -50,6 +50,8 @@ namespace Joveler.DynLoader.Tests
 
             string zlibPath = null;
             string magicPath = null;
+            bool implicitLoadZLib = false;
+            bool implicitLoadMagic = false;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 zlibPath = Path.Combine(arch, zlibDllName);
@@ -59,18 +61,23 @@ namespace Joveler.DynLoader.Tests
             {
                 zlibPath = Path.Combine(arch, zlibSoName);
                 magicPath = Path.Combine(arch, magicSoName);
+                implicitLoadZLib = true;
+                implicitLoadMagic = true;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 zlibPath = Path.Combine(arch, zlibDylibName);
                 magicPath = Path.Combine(arch, magicDylibName);
+                implicitLoadZLib = true;
             }
 
             ExplicitZLib = new SimpleZLib(zlibPath);
-            ImplicitZLib = new SimpleZLib();
+            if (implicitLoadZLib)
+                ImplicitZLib = new SimpleZLib();
 
             ExplicitMagic = new SimpleFileMagic(magicPath);
-            ImplicitMagic = new SimpleFileMagic();
+            if (implicitLoadMagic)
+                ImplicitMagic = new SimpleFileMagic();
         }
 
         [AssemblyCleanup]

@@ -21,22 +21,10 @@ namespace Joveler.DynLoader.Tests
         {
             get
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                { // Call packaged libmagic.dll
-                    switch (RuntimeInformation.ProcessArchitecture)
-                    {
-                        case Architecture.X86:
-                            return Path.Combine("x86", "libmagic-1.dll");
-                        case Architecture.X64:
-                            return Path.Combine("x64", "libmagic-1.dll");
-                        default:
-                            return "libmagic-1.dll";
-                    }
-                }
-                else
-                { // Call system default libz
-                    return "libmagic";
-                }
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return "libmagic.so.1";
+
+                throw new PlatformNotSupportedException();
             }
         }
         #endregion

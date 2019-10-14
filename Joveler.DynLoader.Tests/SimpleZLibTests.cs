@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Joveler.DynLoader.Tests
@@ -8,6 +8,15 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class SimpleZLibTests
     {
+        private static SimpleZLib[] _zlibs;
+
+        [ClassInitialize]
+        public static void Init(TestContext ctx)
+        {
+            _zlibs = new SimpleZLib[] { TestSetup.ExplicitZLib, TestSetup.ImplicitZLib };
+            _zlibs = _zlibs.Where(z => z != null).ToArray();
+        }
+
         [TestMethod]
         public unsafe void Adler32()
         {
@@ -18,7 +27,7 @@ namespace Joveler.DynLoader.Tests
             byte[] second = Encoding.UTF8.GetBytes("XYZ");
             byte[] full = Encoding.UTF8.GetBytes("ABCXYZ");
 
-            foreach (SimpleZLib z in new SimpleZLib[] { TestSetup.ExplicitZLib, TestSetup.ImplicitZLib })
+            foreach (SimpleZLib z in _zlibs)
             {
                 fixed (byte* firstBuf = first)
                 fixed (byte* secondBuf = second)
@@ -44,7 +53,7 @@ namespace Joveler.DynLoader.Tests
             byte[] second = Encoding.UTF8.GetBytes("XYZ");
             byte[] full = Encoding.UTF8.GetBytes("ABCXYZ");
 
-            foreach (SimpleZLib z in new SimpleZLib[] { TestSetup.ExplicitZLib, TestSetup.ImplicitZLib })
+            foreach (SimpleZLib z in _zlibs)
             {
                 fixed (byte* firstBuf = first)
                 fixed (byte* secondBuf = second)
@@ -63,11 +72,10 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void Version()
         {
-            foreach (SimpleZLib z in new SimpleZLib[] { TestSetup.ExplicitZLib, TestSetup.ImplicitZLib })
+            foreach (SimpleZLib z in _zlibs)
             {
                 string verStr = z.ZLibVersion();
                 Console.WriteLine(verStr);
-                Assert.IsTrue(verStr.Equals("1.2.11", StringComparison.Ordinal));
             }
         }
     }
