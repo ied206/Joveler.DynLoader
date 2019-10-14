@@ -4,14 +4,16 @@
     <img src="./Image/Logo.svg" height="128">
 </div>
 
-`Joveler.DynLoader` is a cross-platform native dynamic library loader for .Net.
+`Joveler.DynLoader` is the cross-platform native dynamic library loader for .Net.
 
 The library provides advanced p/invoke functionality of C functions using [LoadLibrary](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryw) and [libdl](http://man7.org/linux/man-pages/man3/dlopen.3.html). It supports Windows, Linux, and macOS.
 
-| Branch    | Build Status   |
-|-----------|----------------|
-| Master    | [![CI Master Branch Build Status](https://ci.appveyor.com/api/projects/status/69h8nrpyqx875bcm/branch/master?svg=true)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/master) |
-| Develop   | [![CI Develop Branch Build Status](https://ci.appveyor.com/api/projects/status/69h8nrpyqx875bcm/branch/develop?svg=true)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/develop) |
+| CI Server        | Branch    | Build Status   |
+|------------------|-----------|----------------|
+| AppVeyor         | Master    | [![AppVeyor CI Master Branch Build Status](https://ci.appveyor.com/api/projects/status/69h8nrpyqx875bcm/branch/master?svg=true)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/master) |
+|                  | Develop   | [![AppVeyor CI Develop Branch Build Status](https://ci.appveyor.com/api/projects/status/69h8nrpyqx875bcm/branch/develop?svg=true)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/develop) |
+| Azure Pipelienes | Master    | [![Azure Pipelienes CI Master Branch Build Status](https://dev.azure.com/ied206/Joveler.DynLoader/_apis/build/status/ied206.Joveler.DynLoader?branchName=master)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/master) |
+|                  | Develop   | [![Azure Pipelienes CI Develop Branch Build Status](https://dev.azure.com/ied206/Joveler.DynLoader/_apis/build/status/ied206.Joveler.DynLoader?branchName=develop)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/develop) |
 
 ## Install
 
