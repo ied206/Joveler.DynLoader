@@ -29,7 +29,23 @@ namespace Joveler.DynLoader
             [DllImport("kernel32.dll", SetLastError = true)]
             internal static extern int SetDllDirectoryW([MarshalAs(UnmanagedType.LPWStr)] string lpPathName);
             [DllImport("kernel32.dll", SetLastError = true)]
-            internal static extern int GetDllDirectoryW(int nBufferLength, StringBuilder lpBuffer);
+            private static extern int GetDllDirectoryW(int nBufferLength, StringBuilder lpBuffer);
+
+            internal static string GetDllDirectory()
+            {
+                // Backup dll search directory state
+                StringBuilder buffer = new StringBuilder(260);
+                int bufferLen = buffer.Capacity;
+                int ret;
+                do
+                {
+                    ret = NativeMethods.Win32.GetDllDirectoryW(bufferLen, buffer);
+                    if (ret != 0 && bufferLen < ret)
+                        buffer.EnsureCapacity(bufferLen + 4);
+                }
+                while (bufferLen < ret);
+                return ret == 0 ? null : buffer.ToString();
+            }
         }
         #endregion
 

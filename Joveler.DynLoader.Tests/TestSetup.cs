@@ -12,6 +12,8 @@ namespace Joveler.DynLoader.Tests
         public static string SampleDir { get; private set; }
         public static SimpleZLib ExplicitZLib { get; private set; }
         public static SimpleZLib ImplicitZLib { get; private set; }
+        public static SimpleFileMagic ExplicitMagic { get; private set; }
+        public static SimpleFileMagic ImplicitMagic { get; private set; }
 
         #region AssemblyInitalize, AssemblyCleanup
         [AssemblyInitialize]
@@ -20,64 +22,61 @@ namespace Joveler.DynLoader.Tests
             BaseDir = Path.GetFullPath(Path.Combine(TestHelper.GetProgramAbsolutePath(), "..", "..", ".."));
             SampleDir = Path.Combine(BaseDir, "Samples");
 
-            const string x64 = "x64";
-            const string x86 = "x86";
-            const string armhf = "armhf";
-            const string arm64 = "arm64";
+            const string zlibDllName = "zlibwapi.dll";
+            const string zlibSoName = "libz.so";
+            const string zlibDylibName = "libz.dylib";
+            const string magicDllName = "libmagic-1.dll";
+            const string magicSoName = "libmagic.so";
+            const string magicDylibName = "libmagic.dylib";
 
-            const string dllName = "zlibwapi.dll";
-            const string soName = "libz.so";
-            const string dylibName = "libz.dylib";
+            string arch = null;
+            switch (RuntimeInformation.ProcessArchitecture)
+            {
+                case Architecture.X86:
+                    arch = "x86";
+                    break;
+                case Architecture.X64:
+                    arch = "x64";
+                    break;
+                case Architecture.Arm:
+                    arch = "armhf";
+                    break;
+                case Architecture.Arm64:
+                    arch = "arm64";
+                    break;
+                default:
+                    throw new PlatformNotSupportedException();
+            }
 
-            string libPath = null;
+            string zlibPath = null;
+            string magicPath = null;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                switch (RuntimeInformation.ProcessArchitecture)
-                {
-                    case Architecture.X86:
-                        libPath = Path.Combine(x86, dllName);
-                        break;
-                    case Architecture.X64:
-                        libPath = Path.Combine(x64, dllName);
-                        break;
-                }
+                zlibPath = Path.Combine(arch, zlibDllName);
+                magicPath = Path.Combine(arch, magicDllName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                switch (RuntimeInformation.ProcessArchitecture)
-                {
-                    case Architecture.X64:
-                        libPath = Path.Combine(x64, soName);
-                        break;
-                    case Architecture.Arm:
-                        libPath = Path.Combine(armhf, soName);
-                        break;
-                    case Architecture.Arm64:
-                        libPath = Path.Combine(arm64, soName);
-                        break;
-                }
+                zlibPath = Path.Combine(arch, zlibSoName);
+                magicPath = Path.Combine(arch, magicSoName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                switch (RuntimeInformation.ProcessArchitecture)
-                {
-                    case Architecture.X64:
-                        libPath = Path.Combine(x64, dylibName);
-                        break;
-                }
+                zlibPath = Path.Combine(arch, zlibDylibName);
+                magicPath = Path.Combine(arch, magicDylibName);
             }
 
-            if (libPath == null)
-                throw new PlatformNotSupportedException();
-
-            ExplicitZLib = new SimpleZLib(libPath);
+            ExplicitZLib = new SimpleZLib(zlibPath);
             ImplicitZLib = new SimpleZLib();
+
+            ExplicitMagic = new SimpleFileMagic(magicPath);
+            ImplicitMagic = new SimpleFileMagic();
         }
 
         [AssemblyCleanup]
         public static void AssemblyCleanup()
         {
-            ExplicitZLib.Dispose();
+            ExplicitMagic.Dispose();
         }
         #endregion
 
