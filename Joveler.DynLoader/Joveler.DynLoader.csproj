@@ -1,7 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net451;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0</TargetFrameworks>
+    <PackageId>Joveler.DynLoader</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Hajin Jang</Authors>
+    <Company>Joveler</Company>
+    <Product>Joveler.DynLoader</Product>
+    <Description>Cross-platform native dynamic library loader for .Net.
+Provides advanced p/invoke functionality using LoadLibrary and libdl.
+Supports Windows, Linux, and macOS.</Description>
+    <Copyright>Copyright (C) 2019 Hajin Jang</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
+    <PackageIcon>images\Logo.png</PackageIcon>
+    <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
+    <PackageReleaseNotes>- Initial release</PackageReleaseNotes>
   </PropertyGroup>
-
+  <ItemGroup>
+    <None Include="..\Image\Logo.png" Pack="true" PackagePath="images\" />
+  </ItemGroup>
 </Project>

@@ -1,4 +1,29 @@
-﻿using System;
+﻿/*
+    Copyright (C) 2019 Hajin Jang
+    Licensed under MIT License.
+ 
+    MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -7,86 +32,56 @@ namespace Joveler.DynLoader
 {
     public abstract class DynLoaderBase : IDisposable
     {
-        #region (abstract) Properties
-        protected abstract string ErrorMsgInitFirst { get; }
-        protected abstract string ErrorMsgAlreadyInit { get; }
+        #region (abstract) DefaultLibFileName
+        /// <summary>
+        /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
+        /// </summary>
+        /// <remarks>
+        /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
+        /// e.g. zlib is often included in Linux and macOS, but not in Windows.
+        /// </remarks>
         protected abstract string DefaultLibFileName { get; }
         #endregion
 
-        #region (private) Properties
-        private SafeHandle _hModule;
-        private bool Loaded => _hModule != null && !_hModule.IsInvalid;
-        #endregion
-
         #region Constructor
+        /// <summary>
+        /// Load a native dynamic library from a path of `DefaultLibFileName`.
+        /// </summary>
         protected DynLoaderBase() : this(null) { }
 
+        /// <summary>
+        /// Load a native dynamic library from a given path.
+        /// </summary>
+        /// <param name="libPath">A native library file to load.</param>
         protected DynLoaderBase(string libPath)
         {
-            if (Loaded)
-                throw new InvalidOperationException(ErrorMsgAlreadyInit);
-
             if (libPath == null)
             {
                 if (DefaultLibFileName == null)
                     throw new ArgumentNullException(nameof(libPath));
 
-                string libExt = ".dll";
-#if !NET451
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    libExt = ".dll";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    libExt = ".so";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    libExt = ".dylib";
-                else
-                    throw new ArgumentNullException(nameof(libPath));
-#endif
-
-                libPath = Path.ChangeExtension(DefaultLibFileName, libExt);
+                libPath = DefaultLibFileName;
             }
 
-            /*
             // Check if we need to set proper directory to search. 
             // If we don't, LoadLibrary can fail when loading chained dll files.
             // e.g. Loading x64/A.dll requires implicit load of x64/B.dll -> SetDllDirectory("x64") is required.
             // When the libPath is just the filename itself (e.g. liblzma.dll), this step is not necessary.
             string libDir = Path.GetDirectoryName(libPath);
             bool setLibSearchDir = libDir != null && Directory.Exists(libDir);
-            */
+
 #if !NET451
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
             {
-                _hModule = new WinSafeLibHandle(libPath);
-                if (_hModule.IsInvalid)
-                    throw new ArgumentException($"Unable to load [{libPath}]", new Win32Exception());
-
-                /*
                 if (setLibSearchDir)
                 {
-                    // Backup dll search directory state
-                    StringBuilder buffer = new StringBuilder(260);
-                    int bufferLen = buffer.Capacity;
-                    int ret;
-                    do
-                    {
-                        ret = NativeMethods.Win32.GetDllDirectoryW(bufferLen, buffer);
-                        if (ret != 0 && bufferLen < ret)
-                            buffer.EnsureCapacity(bufferLen + 4);
-                    }
-                    while (bufferLen < ret);
-                    string bakDllDir = ret == 0 ? null : buffer.ToString();
-
-                    // Set SetDllDictionary guard with try ~ catch
+                    // Library search path guard with try ~ catch
+                    string bakDllDir = NativeMethods.Win32.GetDllDirectory();
                     try
                     {
                         NativeMethods.Win32.SetDllDirectoryW(libDir);
-
-                        libPath = Path.GetFullPath(libPath);
-                        _hModule = new WinLibHandle(libPath);
-                        if (_hModule.IsInvalid)
-                            throw new ArgumentException($"Unable to load [{libPath}]", new Win32Exception());
+                        LoadWindowsModule(Path.GetFullPath(libPath));
                     }
                     finally
                     {
@@ -96,21 +91,13 @@ namespace Joveler.DynLoader
                 }
                 else
                 {
-                    _hModule = new WinLibHandle(libPath);
-                    if (_hModule.IsInvalid)
-                        throw new ArgumentException($"Unable to load [{libPath}]", new Win32Exception());
+                    LoadWindowsModule(libPath);
                 }
-                */
             }
 #if !NET451
             else
             {
-                _hModule = new PosixSafeLibHandle(libPath);
-                if (_hModule.IsInvalid)
-                    throw new ArgumentException($"Unable to load [{libPath}], {NativeMethods.Posix.DLError()}");
-
-                /*
-                // Prepare chained dll files.
+                // Prepare chained library files.
                 string envVar = null;
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     envVar = "LD_LIBRARY_PATH";
@@ -119,15 +106,14 @@ namespace Joveler.DynLoader
 
                 if (setLibSearchDir && envVar != null)
                 {
+                    // Library search path guard with try ~ catch
                     string bakLibSerachPath = Environment.GetEnvironmentVariable(envVar);
                     try
                     {
                         string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
                         Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
 
-                        _hModule = new PosixLibHandle(libPath);
-                        if (_hModule.IsInvalid)
-                            throw new ArgumentException($"Unable to load [{libPath}], {NativeMethods.Posix.DLError()}");
+                        LoadPosixModule(libPath);
                     }
                     finally
                     {
@@ -136,20 +122,15 @@ namespace Joveler.DynLoader
                 }
                 else
                 {
-                    _hModule = new PosixLibHandle(libPath);
-                    if (_hModule.IsInvalid)
-                        throw new ArgumentException($"Unable to load [{libPath}], {NativeMethods.Posix.DLError()}");
+                    LoadPosixModule(libPath);
                 }
-                */
             }
 #endif
 
             // Load functions
             try
             {
-                LoadFunctionsPreHook();
                 LoadFunctions();
-                LoadFunctionsPostHook();
             }
             catch (Exception)
             {
@@ -176,16 +157,39 @@ namespace Joveler.DynLoader
 
         private void GlobalCleanup()
         {
-            ResetFunctionsPreHook();
             ResetFunctions();
-            ResetFunctionsPostHook();
 
             _hModule.Dispose();
             _hModule = null;
         }
         #endregion
 
-        #region GetFuncPtr
+        #region (protected) LoadModule
+        private SafeHandle _hModule;
+        private bool Loaded => _hModule != null && !_hModule.IsInvalid;
+
+        protected void LoadWindowsModule(string dllPath)
+        {
+            _hModule = new WinSafeLibHandle(dllPath);
+            if (_hModule.IsInvalid)
+                throw new ArgumentException($"Unable to load [{dllPath}]", new Win32Exception());
+        }
+
+        protected void LoadPosixModule(string soPath)
+        {
+            _hModule = new PosixSafeLibHandle(soPath);
+            if (_hModule.IsInvalid)
+                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Posix.DLError()}");
+        }
+        #endregion
+
+        #region (protected) GetFuncPtr
+        /// <summary>
+        /// Get a delegate of a native function from a library.
+        /// </summary>
+        /// <typeparam name="T">Delegate type of a native function.</typeparam>
+        /// <param name="funcSymbol">Name of the exported function symbol.</param>
+        /// <returns>Delegate instance of a native function.</returns>
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
             IntPtr funcPtr;
@@ -210,30 +214,14 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region EnsureLoaded, EnsureNotLoaded
-        public void EnsureLoaded()
-        {
-            if (!Loaded)
-                throw new InvalidOperationException(ErrorMsgInitFirst);
-        }
-
-        public void EnsureNotLoaded()
-        {
-            if (Loaded)
-                throw new InvalidOperationException(ErrorMsgAlreadyInit);
-        }
-
-        #endregion
-
-        #region (virtual) Hooks for LoadFunctions/ResetFunctions
-        protected virtual void LoadFunctionsPreHook() { }
-        protected virtual void LoadFunctionsPostHook() { }
-        protected virtual void ResetFunctionsPreHook() { }
-        protected virtual void ResetFunctionsPostHook() { }
-        #endregion
-
         #region (abstract) LoadFunctions, ResetFunctions
+        /// <summary>
+        /// Load native functions with a GetFuncPtr. Called in the constructors.
+        /// </summary>
         protected abstract void LoadFunctions();
+        /// <summary>
+        /// Clear pointer of native functions. Called in Dispose(bool).
+        /// </summary>
         protected abstract void ResetFunctions();
         #endregion
     }

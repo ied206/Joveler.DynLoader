@@ -1,5 +1,9 @@
-﻿using System;
-using System.IO;
+﻿/*
+    Written by Hajin Jang.
+    Released under public domain.
+*/
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader.Tests
@@ -15,33 +19,22 @@ namespace Joveler.DynLoader.Tests
         #endregion
 
         #region Properties
-        protected override string ErrorMsgInitFirst => "Please init the library first!";
-        protected override string ErrorMsgAlreadyInit => "Library was already initialized!";
         protected override string DefaultLibFileName
         {
             get
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                { // Call packaged zlibwapi.dll
-                    switch (RuntimeInformation.ProcessArchitecture)
-                    {
-                        case Architecture.X86:
-                            return Path.Combine("x86", "zlibwapi");
-                        case Architecture.X64:
-                            return Path.Combine("x64", "zlibwapi");
-                        default:
-                            return "zlibwapi";
-                    }
-                }
-                else
-                { // Call system default libz
-                    return "libz";
-                }
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return "libz.so";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    return "libz.dylib";
+
+                throw new PlatformNotSupportedException();
             }
         }
         #endregion
 
         #region LoadFunctions, ResetFunctions
+        /// <inheritdocs/>
         protected override void LoadFunctions()
         {
             Adler32 = GetFuncPtr<adler32>(nameof(adler32));
@@ -49,6 +42,7 @@ namespace Joveler.DynLoader.Tests
             ZLibVersionPtr = GetFuncPtr<zlibVersion>(nameof(zlibVersion));
         }
 
+        /// <inheritdocs/>
         protected override void ResetFunctions()
         {
             Adler32 = null;
@@ -59,17 +53,11 @@ namespace Joveler.DynLoader.Tests
 
         #region zlib Function Pointers
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        public unsafe delegate uint adler32(
-            uint adler,
-            byte* buf,
-            uint len);
+        public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
         public adler32 Adler32;
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        public unsafe delegate uint crc32(
-            uint crc,
-            byte* buf,
-            uint len);
+        public unsafe delegate uint crc32(uint crc, byte* buf, uint len);
         public crc32 Crc32;
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
