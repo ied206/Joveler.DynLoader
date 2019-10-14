@@ -30,9 +30,9 @@ steps:
   inputs:
     version: 3.0.100
 - script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+  displayName: 'Build Projects'
 - task: DotNetCoreCLI@2
-  displayName: 'Run MSTest'
+  displayName: 'Run Tests'
   inputs:
     command: test
     projects: '**/*.Tests/*.csproj'
