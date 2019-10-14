@@ -32,19 +32,7 @@ namespace Joveler.DynLoader
                 if (DefaultLibFileName == null)
                     throw new ArgumentNullException(nameof(libPath));
 
-                string libExt = ".dll";
-#if !NET451
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    libExt = ".dll";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    libExt = ".so";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    libExt = ".dylib";
-                else
-                    throw new ArgumentNullException(nameof(libPath));
-#endif
-
-                libPath = Path.ChangeExtension(DefaultLibFileName, libExt);
+                libPath = DefaultLibFileName;
             }
 
             // Check if we need to set proper directory to search. 

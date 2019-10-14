@@ -21,9 +21,10 @@ namespace Joveler.DynLoader.Tests
         {
             get
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
-                    RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    return "libz";
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    return "libz.so";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    return "libz.dylib";
 
                 throw new PlatformNotSupportedException();
             }
