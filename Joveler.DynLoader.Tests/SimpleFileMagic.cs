@@ -1,5 +1,9 @@
-﻿using System;
-using System.IO;
+﻿/*
+    Written by Hajin Jang.
+    Released under public domain.
+*/
+
+using System;
 using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader.Tests
@@ -15,8 +19,6 @@ namespace Joveler.DynLoader.Tests
         #endregion
 
         #region Properties
-        protected override string ErrorMsgInitFirst => "Please init the library first!";
-        protected override string ErrorMsgAlreadyInit => "Library was already initialized!";
         protected override string DefaultLibFileName
         {
             get
@@ -30,11 +32,13 @@ namespace Joveler.DynLoader.Tests
         #endregion
 
         #region LoadFunctions, ResetFunctions
+        /// <inheritdocs/>
         protected override void LoadFunctions()
         {
             MagicVersion = GetFuncPtr<magic_version>(nameof(magic_version));
         }
 
+        /// <inheritdocs/>
         protected override void ResetFunctions()
         {
             MagicVersion = null;

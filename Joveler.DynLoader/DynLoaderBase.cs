@@ -1,32 +1,60 @@
-﻿using System;
+﻿/*
+    Copyright (C) 2019 Hajin Jang
+    Licensed under MIT License.
+ 
+    MIT License
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Joveler.DynLoader
 {
     public abstract class DynLoaderBase : IDisposable
     {
-        #region (abstract) Properties
-        protected abstract string ErrorMsgInitFirst { get; }
-        protected abstract string ErrorMsgAlreadyInit { get; }
+        #region (abstract) DefaultLibFileName
+        /// <summary>
+        /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
+        /// </summary>
+        /// <remarks>
+        /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
+        /// e.g. zlib is often included in Linux and macOS, but not in Windows.
+        /// </remarks>
         protected abstract string DefaultLibFileName { get; }
         #endregion
 
-        #region (private) Properties
-        private SafeHandle _hModule;
-        private bool Loaded => _hModule != null && !_hModule.IsInvalid;
-        #endregion
-
         #region Constructor
+        /// <summary>
+        /// Load a native dynamic library from a path of `DefaultLibFileName`.
+        /// </summary>
         protected DynLoaderBase() : this(null) { }
 
+        /// <summary>
+        /// Load a native dynamic library from a given path.
+        /// </summary>
+        /// <param name="libPath">A native library file to load.</param>
         protected DynLoaderBase(string libPath)
         {
-            if (Loaded)
-                throw new InvalidOperationException(ErrorMsgAlreadyInit);
-
             if (libPath == null)
             {
                 if (DefaultLibFileName == null)
@@ -137,6 +165,9 @@ namespace Joveler.DynLoader
         #endregion
 
         #region (protected) LoadModule
+        private SafeHandle _hModule;
+        private bool Loaded => _hModule != null && !_hModule.IsInvalid;
+
         protected void LoadWindowsModule(string dllPath)
         {
             _hModule = new WinSafeLibHandle(dllPath);
@@ -153,6 +184,12 @@ namespace Joveler.DynLoader
         #endregion
 
         #region (protected) GetFuncPtr
+        /// <summary>
+        /// Get a delegate of a native function from a library.
+        /// </summary>
+        /// <typeparam name="T">Delegate type of a native function.</typeparam>
+        /// <param name="funcSymbol">Name of the exported function symbol.</param>
+        /// <returns>Delegate instance of a native function.</returns>
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
             IntPtr funcPtr;
@@ -177,22 +214,14 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region (public) EnsureLoaded, EnsureNotLoaded
-        public void EnsureLoaded()
-        {
-            if (!Loaded)
-                throw new InvalidOperationException(ErrorMsgInitFirst);
-        }
-
-        public void EnsureNotLoaded()
-        {
-            if (Loaded)
-                throw new InvalidOperationException(ErrorMsgAlreadyInit);
-        }
-        #endregion
-
         #region (abstract) LoadFunctions, ResetFunctions
+        /// <summary>
+        /// Load native functions with a GetFuncPtr. Called in the constructors.
+        /// </summary>
         protected abstract void LoadFunctions();
+        /// <summary>
+        /// Clear pointer of native functions. Called in Dispose(bool).
+        /// </summary>
         protected abstract void ResetFunctions();
         #endregion
     }
