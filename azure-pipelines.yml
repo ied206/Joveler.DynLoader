@@ -28,7 +28,6 @@ steps:
 - script: dotnet build --configuration $(buildConfiguration)
   displayName: 'dotnet build $(buildConfiguration)'
 # do this before all your .NET Core tasks
-steps:
 - task: UseDotNet@2
   displayName: 'Install .NET Core SDK 3.0'
   inputs:
