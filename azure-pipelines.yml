@@ -27,9 +27,15 @@ variables:
 steps:
 - script: dotnet build --configuration $(buildConfiguration)
   displayName: 'dotnet build $(buildConfiguration)'
-
+# do this before all your .NET Core tasks
+steps:
+- task: UseDotNet@2
+  displayName: 'Install .NET Core SDK 3.0'
+  inputs:
+    version: 3.0.100
 # do this after other tasks such as building
 - task: DotNetCoreCLI@2
+  displayName: 'Run MSTest'
   inputs:
     command: test
     projects: '**/*.Tests/*.csproj'
