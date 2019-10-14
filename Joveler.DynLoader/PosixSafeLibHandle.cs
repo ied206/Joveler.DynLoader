@@ -16,8 +16,8 @@ namespace Joveler.DynLoader
         /// <inheritdocs />
         protected override bool ReleaseHandle()
         {
-            int ret = NativeMethods.Win32.FreeLibrary(handle);
-            return ret != 0;
+            int ret = NativeMethods.Posix.DLClose(handle);
+            return ret == 0;
         }
     }
 }

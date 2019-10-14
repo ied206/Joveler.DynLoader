@@ -14,8 +14,9 @@ strategy:
 
 trigger:
   branches:
-  - master
-  - develop
+    include:
+    - master
+    - develop
 
 pool:
   vmImage: $(imageName)

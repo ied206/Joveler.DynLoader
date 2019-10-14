@@ -10,8 +10,10 @@ namespace Joveler.DynLoader.Tests
     {
         public static string BaseDir { get; private set; }
         public static string SampleDir { get; private set; }
+        public static string PackagedZLibPath { get; private set; }
         public static SimpleZLib ExplicitZLib { get; private set; }
         public static SimpleZLib ImplicitZLib { get; private set; }
+        public static string PackagedMagicPath { get; private set; }
         public static SimpleFileMagic ExplicitMagic { get; private set; }
         public static SimpleFileMagic ImplicitMagic { get; private set; }
 
@@ -48,34 +50,32 @@ namespace Joveler.DynLoader.Tests
                     throw new PlatformNotSupportedException();
             }
 
-            string zlibPath = null;
-            string magicPath = null;
             bool implicitLoadZLib = false;
             bool implicitLoadMagic = false;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                zlibPath = Path.Combine(arch, zlibDllName);
-                magicPath = Path.Combine(arch, magicDllName);
+                PackagedZLibPath = Path.Combine(arch, zlibDllName);
+                PackagedMagicPath = Path.Combine(arch, magicDllName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                zlibPath = Path.Combine(arch, zlibSoName);
-                magicPath = Path.Combine(arch, magicSoName);
+                PackagedZLibPath = Path.Combine(arch, zlibSoName);
+                PackagedMagicPath = Path.Combine(arch, magicSoName);
                 implicitLoadZLib = true;
                 implicitLoadMagic = true;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                zlibPath = Path.Combine(arch, zlibDylibName);
-                magicPath = Path.Combine(arch, magicDylibName);
+                PackagedZLibPath = Path.Combine(arch, zlibDylibName);
+                PackagedMagicPath = Path.Combine(arch, magicDylibName);
                 implicitLoadZLib = true;
             }
 
-            ExplicitZLib = new SimpleZLib(zlibPath);
+            ExplicitZLib = new SimpleZLib(PackagedZLibPath);
             if (implicitLoadZLib)
                 ImplicitZLib = new SimpleZLib();
 
-            ExplicitMagic = new SimpleFileMagic(magicPath);
+            ExplicitMagic = new SimpleFileMagic(PackagedMagicPath);
             if (implicitLoadMagic)
                 ImplicitMagic = new SimpleFileMagic();
         }
@@ -84,6 +84,7 @@ namespace Joveler.DynLoader.Tests
         public static void AssemblyCleanup()
         {
             ExplicitMagic.Dispose();
+            ImplicitMagic.Dispose();
         }
         #endregion
 

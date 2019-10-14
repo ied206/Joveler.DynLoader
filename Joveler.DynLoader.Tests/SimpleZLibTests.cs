@@ -78,5 +78,15 @@ namespace Joveler.DynLoader.Tests
                 Console.WriteLine(verStr);
             }
         }
+
+        [TestMethod]
+        public void CreateDispose()
+        {
+            string libPath = TestSetup.PackagedZLibPath;
+            using (SimpleZLib zlib = new SimpleZLib(libPath))
+            {
+                zlib.EnsureLoaded();
+            }
+        }
     }
 }

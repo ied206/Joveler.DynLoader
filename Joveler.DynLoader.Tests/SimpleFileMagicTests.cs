@@ -25,5 +25,15 @@ namespace Joveler.DynLoader.Tests
                 Console.WriteLine(verInt);
             }
         }
+
+        [TestMethod]
+        public void CreateDispose()
+        {
+            string libPath = TestSetup.PackagedMagicPath;
+            using (SimpleFileMagic m = new SimpleFileMagic(libPath))
+            {
+                m.EnsureLoaded();
+            }
+        }
     }
 }
