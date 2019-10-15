@@ -27,22 +27,12 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Joveler.DynLoader
 {
     public abstract class DynLoaderBase : IDisposable
     {
-        #region (abstract) DefaultLibFileName
-        /// <summary>
-        /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
-        /// </summary>
-        /// <remarks>
-        /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
-        /// e.g. zlib is often included in Linux and macOS, but not in Windows.
-        /// </remarks>
-        protected abstract string DefaultLibFileName { get; }
-        #endregion
-
         #region Constructor
         /// <summary>
         /// Load a native dynamic library from a path of `DefaultLibFileName`.
@@ -55,6 +45,7 @@ namespace Joveler.DynLoader
         /// <param name="libPath">A native library file to load.</param>
         protected DynLoaderBase(string libPath)
         {
+            // Should DynLoaderBase use default library filename?
             if (libPath == null)
             {
                 if (DefaultLibFileName == null)
@@ -62,6 +53,32 @@ namespace Joveler.DynLoader
 
                 libPath = DefaultLibFileName;
             }
+
+            // Retreive platform information
+#if !NET451
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+            {
+                PlatformUnicodeConvention = PlatformUnicodeConvention.Utf16;
+                PlatformDataModel = PlatformDataModel.Long32;
+            }
+#if !NET451
+            else
+            {
+                PlatformUnicodeConvention = PlatformUnicodeConvention.Utf8;
+                switch (RuntimeInformation.ProcessArchitecture)
+                {
+                    case Architecture.Arm:
+                    case Architecture.X86:
+                        PlatformDataModel = PlatformDataModel.Long32;
+                        break;
+                    case Architecture.Arm64:
+                    case Architecture.X64:
+                        PlatformDataModel = PlatformDataModel.Long64;
+                        break;
+                }
+            }
+#endif
 
             // Check if we need to set proper directory to search. 
             // If we don't, LoadLibrary can fail when loading chained dll files.
@@ -214,6 +231,17 @@ namespace Joveler.DynLoader
         }
         #endregion
 
+        #region (abstract) DefaultLibFileName
+        /// <summary>
+        /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
+        /// </summary>
+        /// <remarks>
+        /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
+        /// e.g. zlib is often included in Linux and macOS, but not in Windows.
+        /// </remarks>
+        protected abstract string DefaultLibFileName { get; }
+        #endregion
+
         #region (abstract) LoadFunctions, ResetFunctions
         /// <summary>
         /// Load native functions with a GetFuncPtr. Called in the constructors.
@@ -223,6 +251,52 @@ namespace Joveler.DynLoader
         /// Clear pointer of native functions. Called in Dispose(bool).
         /// </summary>
         protected abstract void ResetFunctions();
+        #endregion
+
+        #region (public) Platform Information (Data Model, Unicode Encoding)
+        public PlatformDataModel PlatformDataModel { get; }
+        public PlatformUnicodeConvention PlatformUnicodeConvention { get; }
+        public Encoding PlatformUnicodeEncoding
+        {
+            get
+            {
+                switch (PlatformUnicodeConvention)
+                {
+                    case PlatformUnicodeConvention.Utf16:
+                        return Encoding.Unicode;
+                    case PlatformUnicodeConvention.Utf8:
+                    default:
+                        return new UTF8Encoding(false);
+                }
+            }
+        }
+
+        public string MarshalPtrToString(IntPtr ptr)
+        {
+            if (ptr == IntPtr.Zero)
+                return string.Empty;
+
+            switch (PlatformUnicodeConvention)
+            {
+                case PlatformUnicodeConvention.Utf16:
+                    return Marshal.PtrToStringUni(ptr);
+                case PlatformUnicodeConvention.Utf8:
+                default:
+                    return Marshal.PtrToStringAnsi(ptr);
+            }
+        }
+
+        public IntPtr MarshalStringToPtr(string str)
+        {
+            switch (PlatformUnicodeConvention)
+            {
+                case PlatformUnicodeConvention.Utf16:
+                    return Marshal.StringToHGlobalUni(str);
+                case PlatformUnicodeConvention.Utf8:
+                default:
+                    return Marshal.StringToHGlobalAnsi(str);
+            }
+        }
         #endregion
     }
 }

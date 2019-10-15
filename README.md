@@ -47,4 +47,7 @@ See [USAGE.md](./USAGE.md).
 
 ## License
 
-MIT license
+Most of the code is licensed under MIT license. Some test code is released as a public domain, to promote easy development.
+
+The logo is licensed under Apache 2.0 License.  
+[Memory icon](https://material.io/resources/icons/?icon=memory&style=baseline) from the Material Icons.
