@@ -55,10 +55,61 @@ namespace Joveler.DynLoader.Tests
         public void CreateDispose()
         {
             string libPath = TestSetup.PackagedMagicPath;
+
             using (SimpleFileMagic m = new SimpleFileMagic(libPath))
             {
                 m.MagicVersion();
             }
+        }
+
+        [TestMethod]
+        public void Manager()
+        {
+            string libPath = TestSetup.PackagedMagicPath;
+
+            SimpleFileMagicManager manager = new SimpleFileMagicManager();
+
+            bool dupInitGuard = false;
+            Assert.IsFalse(manager.PreInitHookCalled);
+            Assert.IsFalse(manager.PostInitHookCalled);
+            Assert.IsFalse(manager.PreDisposeHookCalled);
+            Assert.IsFalse(manager.PostDisposeHookCalled);
+            manager.GlobalInit(libPath);
+            Assert.IsTrue(manager.PreInitHookCalled);
+            Assert.IsTrue(manager.PostInitHookCalled);
+            Assert.IsFalse(manager.PreDisposeHookCalled);
+            Assert.IsFalse(manager.PostDisposeHookCalled);
+            try
+            {
+                manager.GlobalInit();
+            }
+            catch (InvalidOperationException)
+            {
+                dupInitGuard = true;
+            }
+            Assert.IsTrue(dupInitGuard);
+
+            manager.Lib.MagicVersion();
+
+            bool dupCleanGuard = false;
+            Assert.IsTrue(manager.PreInitHookCalled);
+            Assert.IsTrue(manager.PostInitHookCalled);
+            Assert.IsFalse(manager.PreDisposeHookCalled);
+            Assert.IsFalse(manager.PostDisposeHookCalled);
+            manager.GlobalCleanup();
+            Assert.IsTrue(manager.PreInitHookCalled);
+            Assert.IsTrue(manager.PostInitHookCalled);
+            Assert.IsTrue(manager.PreDisposeHookCalled);
+            Assert.IsTrue(manager.PostDisposeHookCalled);
+            try
+            {
+                manager.GlobalCleanup();
+            }
+            catch (InvalidOperationException)
+            {
+                dupCleanGuard = true;
+            }
+            Assert.IsTrue(dupCleanGuard);
         }
     }
 }

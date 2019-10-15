@@ -23,7 +23,8 @@ The library provides advanced p/invoke functionality of C functions using [LoadL
 
 ## Features
 
-- `DynLoaderBase`, an cross-platform abstract class designed to easily wrap native library.
+- `DynLoaderBase`, the cross-platform abstract class designed to wrap native library easily.
+- `LoadManagerBase`, the abstract class helps developers to manage `DynLoaderBase` singleton instance.
 
 ## Support
 

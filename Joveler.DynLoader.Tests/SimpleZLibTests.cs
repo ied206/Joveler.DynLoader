@@ -113,5 +113,39 @@ namespace Joveler.DynLoader.Tests
                 zlib.ZLibVersion();
             }
         }
+
+        [TestMethod]
+        public void Manager()
+        {
+            string libPath = TestSetup.PackagedZLibPath;
+
+            SimpleZLibManager manager = new SimpleZLibManager();
+
+            bool dupInitGuard = false;
+            manager.GlobalInit(libPath);
+            try
+            {
+                manager.GlobalInit();
+            }
+            catch (InvalidOperationException)
+            {
+                dupInitGuard = true;
+            }
+            Assert.IsTrue(dupInitGuard);
+
+            manager.Lib.ZLibVersion();
+
+            bool dupCleanGuard = false;
+            manager.GlobalCleanup();
+            try
+            {
+                manager.GlobalCleanup();
+            }
+            catch (InvalidOperationException)
+            {
+                dupCleanGuard = true;
+            }
+            Assert.IsTrue(dupCleanGuard);
+        }
     }
 }
