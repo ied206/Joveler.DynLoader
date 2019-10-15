@@ -7,13 +7,16 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="24"
-   height="24"
-   viewBox="0 0 24 24"
+   width="20.200001"
+   height="20.200001"
+   viewBox="0 0 20.200001 20.200001"
    version="1.1"
    id="svg26"
    sodipodi:docname="Logo.svg"
-   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   inkscape:export-filename="D:\Jang\Build\Source\PEBakery\Joveler.DynLoader\Image\Logo.png"
+   inkscape:export-xdpi="608.31683"
+   inkscape:export-ydpi="608.31683">
   <metadata
      id="metadata32">
     <rdf:RDF>
@@ -22,6 +25,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -36,23 +40,29 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1600"
-     inkscape:window-height="837"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
      id="namedview28"
      showgrid="false"
      inkscape:zoom="27.958333"
-     inkscape:cx="12"
-     inkscape:cy="12"
-     inkscape:window-x="1918"
-     inkscape:window-y="1072"
+     inkscape:cx="3.0895677"
+     inkscape:cy="10.099998"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg26" />
+     inkscape:current-layer="svg26"
+     fit-margin-top="1"
+     fit-margin-bottom="1"
+     fit-margin-left="1"
+     fit-margin-right="1" />
   <path
-     d="M0 0h24v24H0z"
-     fill="none"
-     id="path22" />
+     d="m -1.9,-1.9 h 24 v 24 h -24 z"
+     id="path22"
+     inkscape:connector-curvature="0"
+     style="fill:none" />
   <path
-     d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"
+     d="m 13.1,7.1 h -6 v 6 h 6 z m -2,4 h -2 v -2 h 2 z m 8,-2 v -2 h -2 v -2 c 0,-1.1 -0.9,-2 -2,-2 h -2 v -2 h -2 v 2 h -2 v -2 h -2 v 2 h -2 c -1.1,0 -2,0.9 -2,2 v 2 h -2 v 2 h 2 v 2 h -2 v 2 h 2 v 2 c 0,1.1 0.9,2 2,2 h 2 v 2 h 2 v -2 h 2 v 2 h 2 v -2 h 2 c 1.1,0 2,-0.9 2,-2 v -2 h 2 v -2 h -2 v -2 z m -4,6 h -10 v -10 h 10 z"
      id="path24"
-     style="stroke:#ffffff;stroke-opacity:1;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none" />
+     style="stroke:#ffffff;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     inkscape:connector-curvature="0" />
 </svg>

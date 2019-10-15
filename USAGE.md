@@ -2,7 +2,11 @@
 
 `Joveler.DynLoader` is a cross-platform native dynamic library loader for .Net. It allows developers to create a wrapper of native C libraries easily.
 
-## Inheritance of DynLoaderBase
+The library provide two abstract class, [DynLoaderBase](#DynLoaderBase) and [LoadManagerBase](#LoadManagerBase).
+
+Please also read [P/Invoke Tips from DynLoader](#Tips) for your easy P/Invoke life.
+
+## DynLoaderBase
 
 [DynLoaderBase](./Joveler.DynLoader/DynLoaderBase.cs) class provides a scaffold of a native library wrapper.
 
@@ -61,7 +65,7 @@ protected abstract void LoadFunctions();
 protected abstract void ResetFunctions();
 ```
 
-#### LoadFunctions
+#### LoadFunctions()
 
 You must override `LoadFunctions()` with a code loading delegates of native functions. 
 
@@ -80,11 +84,11 @@ protected override void LoadFunctions()
 }
 ```
 
-#### ResetFunctions
+#### ResetFunctions()
 
 Override `ResetFunctions()` when you want to explicitly clear native resources and delegate assignments.
 
-Usually, override of this method is not required, as the `ResetFunctions` method is called when the instance is disposed of. But if you need to clear native resources as well as delegate assignment, you have to override it.
+Usually, the override of this method is not required, as the `ResetFunctions` method is called when the instance is disposed of. But if you need to clear native resources as well as delegate assignment, you have to override it.
 
 #### DefaultLibFileName
 
@@ -132,7 +136,104 @@ The parameterless constructor tries to load the default native library from the 
 
 The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-dispose). You do not need to implement the pattern yourself. The class had implemented for you.
 
-## Tips 
+## LoadManagerBase
+
+[LoadManagerBase](./Joveler.DynLoader/LoadManagerBase.cs) class provides a thread-safe way to manage `DynLoaderBase` singleton instance.
+
+### Methods and properties to override
+
+```csharp
+/// <summary>
+/// Represents parameter-less constructor of DynLoaderBase.
+/// </summary>
+/// <remarks>
+/// Called in GlobalInit().
+/// </remarks>
+/// <returns>DynLoaderBase instace</returns>
+protected abstract T CreateLoader();
+/// <summary>
+/// Represents constructor of DynLoaderBase with a `libPath` parameter.
+/// </summary>
+/// <remarks>
+/// Called in GlobalInit(string libPath).
+/// </remarks>
+/// <returns>DynLoaderBase instace</returns>
+protected abstract T CreateLoader(string libPath);
+/// <summary>
+/// "Please init the library first" error message
+/// </summary>
+protected abstract string ErrorMsgInitFirst { get; }
+/// <summary>
+/// "The library is already loaded" error message
+/// </summary>
+protected abstract string ErrorMsgAlreadyLoaded { get; }
+```
+
+#### CreateLoader()
+
+Create instance of `DynLoaderBase` in `CreateLoader()` methods. You should implement two variant of `CreateLoader()`.
+
+**Example**
+
+```csharp
+protected override SimpleZLib CreateLoader()
+{
+    return new SimpleZLib();
+}
+
+protected override SimpleZLib CreateLoader(string libPath)
+{
+    return new SimpleZLib(libPath);
+}
+```
+
+#### ErrorMsgInitFirst, ErrorMsgAlreadyLoaded
+
+Error messages to show when the error has occurred.
+
+**Example**
+
+```csharp
+protected override string ErrorMsgInitFirst => "Please init the zlib first!";
+protected override string ErrorMsgAlreadyLoaded => "zlib is already loaded.";
+```
+
+#### Hooks
+
+These hooks will be called before/after `CreateLoader()`/`Dispose()`. Implementing them is optional.
+
+```csharp
+/// <summary>
+/// Allocate other external resources before CreateLoader get called.
+/// </summary>
+/// <remarks>
+/// Called in GlobalInit() and GlobalInit(string libPath).
+/// </remarks>
+protected virtual void PreInitHook() { }
+/// <summary>
+/// Allocate other external resources after CreateLoader get called.
+/// </summary>
+/// <remarks>
+/// Called in GlobalInit() and GlobalInit(string libPath).
+/// </remarks>
+protected virtual void PostInitHook() { }
+/// <summary>
+/// Disallocate other external resources before disposing DynLoaderBase instance.
+/// </summary>
+/// <remarks>
+/// Called in GlobalCleanup().
+/// </remarks>
+protected virtual void PreDisposeHook() { }
+/// <summary>
+/// Disallocate other external resources after disposing DynLoaderBase instance.
+/// </summary>
+/// <remarks>
+/// Called in GlobalCleanup().
+/// </remarks>
+protected virtual void PostDisposeHook() { }
+```
+
+## Tips
 
 ### Bundling native libraries
 
