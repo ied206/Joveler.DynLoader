@@ -54,27 +54,44 @@ namespace Joveler.DynLoader
                 libPath = DefaultLibFileName;
             }
 
-            // Retreive platform information
-#if !NET451
+            // Retreive platform convention
+#if NET451
+            UnicodeConvention = UnicodeConvention.Utf16;
+            PlatformLongSize = PlatformLongSize.Long32;
+            PlatformDataModel = Environment.Is64BitProcess ? PlatformDataModel.LLP64 : PlatformDataModel.ILP32;
+#else
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
             {
-                PlatformUnicodeConvention = PlatformUnicodeConvention.Utf16;
-                PlatformDataModel = PlatformDataModel.Long32;
-            }
-#if !NET451
-            else
-            {
-                PlatformUnicodeConvention = PlatformUnicodeConvention.Utf8;
+                UnicodeConvention = UnicodeConvention.Utf16;
+                PlatformLongSize = PlatformLongSize.Long32;
                 switch (RuntimeInformation.ProcessArchitecture)
                 {
                     case Architecture.Arm:
                     case Architecture.X86:
-                        PlatformDataModel = PlatformDataModel.Long32;
+                        PlatformDataModel = PlatformDataModel.ILP32;
                         break;
                     case Architecture.Arm64:
                     case Architecture.X64:
-                        PlatformDataModel = PlatformDataModel.Long64;
+                    default:
+                        PlatformDataModel = PlatformDataModel.LLP64;
+                        break;
+                }
+            }
+            else
+            {
+                UnicodeConvention = UnicodeConvention.Utf8;
+                switch (RuntimeInformation.ProcessArchitecture)
+                {
+                    case Architecture.Arm:
+                    case Architecture.X86:
+                        PlatformDataModel = PlatformDataModel.ILP32;
+                        PlatformLongSize = PlatformLongSize.Long32;
+                        break;
+                    case Architecture.Arm64:
+                    case Architecture.X64:
+                    default:
+                        PlatformDataModel = PlatformDataModel.LP64;
+                        PlatformLongSize = PlatformLongSize.Long64;
                         break;
                 }
             }
@@ -254,47 +271,102 @@ namespace Joveler.DynLoader
         #endregion
 
         #region (public) Platform Information (Data Model, Unicode Encoding)
+        /// <summary>
+        /// Data model of the platform.
+        /// </summary>
         public PlatformDataModel PlatformDataModel { get; }
-        public PlatformUnicodeConvention PlatformUnicodeConvention { get; }
-        public Encoding PlatformUnicodeEncoding
+        /// <summary>
+        /// Size of the `long` type of the platform.
+        /// </summary>
+        public PlatformLongSize PlatformLongSize { get; }
+        /// <summary>
+        /// Default unicode encoding convention of the platform. Overwrite it when the native library does not follow the platform's default convention.
+        /// </summary>
+        /// <remarks>
+        /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+        /// </remarks>
+        public UnicodeConvention UnicodeConvention { get; protected set; }
+        /// <summary>
+        /// Default unicode encoding instance of the platform.
+        /// </summary>
+        /// <remarks>
+        /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+        /// </remarks>
+        public Encoding UnicodeEncoding
         {
             get
             {
-                switch (PlatformUnicodeConvention)
+                switch (UnicodeConvention)
                 {
-                    case PlatformUnicodeConvention.Utf16:
+                    case UnicodeConvention.Utf16:
                         return Encoding.Unicode;
-                    case PlatformUnicodeConvention.Utf8:
+                    case UnicodeConvention.Utf8:
                     default:
                         return new UTF8Encoding(false);
                 }
             }
         }
 
-        public string MarshalPtrToString(IntPtr ptr)
+        /// <summary>
+        /// Convert buffer pointer to string following platform's default encoding convention. Wrapper of Marshal.PtrToString*().
+        /// </summary>
+        /// <remarks>
+        /// Marshal.PtrToStringAnsi() use UTF-8 on POSIX.
+        /// </remarks>
+        /// <param name="ptr">Buffer pointer to convert to string</param>
+        /// <returns>Converted string.</returns>
+        public string PtrToStringAuto(IntPtr ptr)
         {
             if (ptr == IntPtr.Zero)
                 return string.Empty;
 
-            switch (PlatformUnicodeConvention)
+            switch (UnicodeConvention)
             {
-                case PlatformUnicodeConvention.Utf16:
+                case UnicodeConvention.Utf16:
                     return Marshal.PtrToStringUni(ptr);
-                case PlatformUnicodeConvention.Utf8:
+                case UnicodeConvention.Utf8:
                 default:
                     return Marshal.PtrToStringAnsi(ptr);
             }
         }
 
-        public IntPtr MarshalStringToPtr(string str)
+        /// <summary>
+        /// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToHGlobal*().
+        /// </summary>
+        /// <remarks>
+        /// Marshal.StringToHGlobalAnsi() use UTF-8 on POSIX.
+        /// </remarks>
+        /// <param name="str">String to convert</param>
+        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with return value to prevent memory leak.</returns>
+        public IntPtr StringToHGlobalAuto(string str)
         {
-            switch (PlatformUnicodeConvention)
+            switch (UnicodeConvention)
             {
-                case PlatformUnicodeConvention.Utf16:
+                case UnicodeConvention.Utf16:
                     return Marshal.StringToHGlobalUni(str);
-                case PlatformUnicodeConvention.Utf8:
+                case UnicodeConvention.Utf8:
                 default:
                     return Marshal.StringToHGlobalAnsi(str);
+            }
+        }
+
+        /// <summary>
+        /// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToCoTaskMem*().
+        /// </summary>
+        /// <remarks>
+        /// Marshal.StringToCoTaskMemAnsi() use UTF-8 on POSIX.
+        /// </remarks>
+        /// <param name="str">String to convert</param>
+        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with return value to prevent memory leak.</returns>
+        public IntPtr AutoStringToCoTaskMem(string str)
+        {
+            switch (UnicodeConvention)
+            {
+                case UnicodeConvention.Utf16:
+                    return Marshal.StringToCoTaskMemUni(str);
+                case UnicodeConvention.Utf8:
+                default:
+                    return Marshal.StringToCoTaskMemAnsi(str);
             }
         }
         #endregion

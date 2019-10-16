@@ -15,7 +15,7 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Add `LoadManagerBase` abstract class</PackageReleaseNotes>
+    <PackageReleaseNotes>- Add platform convention helper properties and methods</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <ItemGroup>

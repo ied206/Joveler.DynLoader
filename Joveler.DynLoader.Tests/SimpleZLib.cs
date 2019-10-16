@@ -11,7 +11,7 @@ namespace Joveler.DynLoader.Tests
     /// <summary>
     /// Sample representation of zlib, includes only adler32 and crc32 checksum
     /// </summary>
-    public unsafe class SimpleZLib : DynLoaderBase
+    public unsafe sealed class SimpleZLib : DynLoaderBase
     {
         #region Constructor
         public SimpleZLib() : base() { }

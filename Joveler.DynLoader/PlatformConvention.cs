@@ -26,7 +26,20 @@
 namespace Joveler.DynLoader
 {
     #region ILP32, LP64 and LLP64 Data Models
+    /// <summary>
+    /// Data model of the platform.
+    /// </summary>
     public enum PlatformDataModel
+    {
+        LP64 = 0, // POSIX 64bit
+        LLP64 = 1, // Windows 64bit
+        ILP32 = 2, // Windows, POSIX 32bit 
+    }
+
+    /// <summary>
+    /// Size of the `long` type of the platform.
+    /// </summary>
+    public enum PlatformLongSize
     {
         Long64 = 0, // POSIX 64bit (LP64)
         Long32 = 1, // Windows, POSIX 32bit (ILP32, LLP64)
@@ -34,9 +47,16 @@ namespace Joveler.DynLoader
     #endregion
 
     #region Default Unicode Encoding Convention
-    public enum PlatformUnicodeConvention
+    /// <summary>
+    /// Default unicode encoding convention of the platform. 
+    /// </summary>
+    /// <remarks>
+    /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+    /// </remarks>
+    public enum UnicodeConvention
     {
         Utf8 = 0, // POSIX
+        Ansi = 0, // Windows
         Utf16 = 1, // Windows
     }
     #endregion

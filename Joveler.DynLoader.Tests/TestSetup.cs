@@ -41,6 +41,7 @@ namespace Joveler.DynLoader.Tests
         public static string PackagedMagicPath { get; private set; }
         public static SimpleFileMagic ExplicitMagic { get; private set; }
         public static SimpleFileMagic ImplicitMagic { get; private set; }
+        public static SimplePlatform PlatformLib { get; private set; }
 
         #region AssemblyInitalize, AssemblyCleanup
         [AssemblyInitialize]
@@ -103,16 +104,22 @@ namespace Joveler.DynLoader.Tests
             ExplicitMagic = new SimpleFileMagic(PackagedMagicPath);
             if (implicitLoadMagic)
                 ImplicitMagic = new SimpleFileMagic();
+
+            PlatformLib = new SimplePlatform();
         }
 
         [AssemblyCleanup]
         public static void AssemblyCleanup()
         {
-            ExplicitMagic.Dispose();
-            ImplicitMagic.Dispose();
+            ExplicitZLib?.Dispose();
+            ImplicitZLib?.Dispose();
+            ExplicitMagic?.Dispose();
+            ImplicitMagic?.Dispose();
+            PlatformLib?.Dispose();
         }
         #endregion
 
+        #region TestHelper
         public class TestHelper
         {
             public static string GetProgramAbsolutePath()
@@ -123,5 +130,6 @@ namespace Joveler.DynLoader.Tests
                 return path;
             }
         }
+        #endregion
     }
 }
