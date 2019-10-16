@@ -11,7 +11,7 @@ namespace Joveler.DynLoader.Tests
     /// <summary>
     /// Sample representation of libmagic, includes only version
     /// </summary>
-    public unsafe class SimpleFileMagic : DynLoaderBase
+    public unsafe sealed class SimpleFileMagic : DynLoaderBase
     {
         #region Constructor
         public SimpleFileMagic() : base() { }

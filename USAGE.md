@@ -19,6 +19,8 @@ Inherit [DynLoaderBase](./Joveler.DynLoader/DynLoaderBase.cs) to create a wrappe
 - zlib : [SimpleZLib.cs](./Joveler.DynLoader.Tests/SimpleZLib.cs)
 - magic : [SimpleFileMagic.cs](./Joveler.DynLoader.Tests/SimpleFileMagic.cs)
 
+The test project also has the showcase of per-platform delegate declarations. Read [SimplePlatform.cs](./Joveler.DynLoader.Tests/SimplePlatform.cs)
+
 ### Delegate of native functions
 
 You need to provide a prototype of the native functions, similar to traditional [DllImport P/Invoke](https://docs.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke).
@@ -132,9 +134,101 @@ The constructor with a path parameter loads that specific native library. The pa
 
 The parameterless constructor tries to load the default native library from the base system. The loader will load the default library following the [library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order) of the target platform.
 
+### Platform Conventions
+
+Native function signatures are changed by platform differences, such as OS and architecture. Sometimes you have to maintain two or more signature sets to accommodate this difference. To make your life easy, `DynLoaderBase` exposes some helper properties and methods.
+
+Please refer to [Tips](#Tips) section for more background.
+
+```csharp
+/// <summary>
+/// Data model of the platform.
+/// </summary>
+public enum PlatformDataModel
+{
+    LP64 = 0, // POSIX 64bit
+    LLP64 = 1, // Windows 64bit
+    ILP32 = 2, // Windows, POSIX 32bit 
+}
+/// <summary>
+/// Size of the `long` type of the platform.
+/// </summary>
+public enum PlatformLongSize
+{
+    Long64 = 0, // POSIX 64bit (LP64)
+    Long32 = 1, // Windows, POSIX 32bit (ILP32, LLP64)
+}
+/// <summary>
+/// Default unicode encoding convention of the platform. 
+/// </summary>
+/// <remarks>
+/// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+/// </remarks>
+public enum PlatformUnicodeConvention
+{
+    Utf8 = 0, // POSIX
+    Utf16 = 1, // Windows
+}
+
+public PlatformDataModel PlatformDataModel { get; }
+public PlatformLongSize PlatformLongSize { get; }
+public PlatformUnicodeConvention PlatformUnicodeConvention { get; }
+public Encoding PlatformUnicodeEncoding { get; }
+
+/// <summary>
+/// Convert buffer pointer to string following platform's default encoding convention. Wrapper of Marshal.PtrToString*().
+/// </summary>
+/// <remarks>
+/// Marshal.PtrToStringAnsi() use UTF-8 on POSIX.
+/// </remarks>
+/// <param name="ptr">Buffer pointer to convert to string</param>
+/// <returns>Converted string.</returns>
+public string PtrToStringAuto(IntPtr ptr);
+/// <summary>
+/// <summary>
+/// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToHGlobal*().
+/// </summary>
+/// <remarks>
+/// Marshal.StringToHGlobalAnsi() use UTF-8 on POSIX.
+/// </remarks>
+/// <param name="str">String to convert</param>
+/// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with return value to prevent memory leak.</returns>
+public IntPtr StringToHGlobalAuto(string str);
+/// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToCoTaskMem*().
+/// </summary>
+/// <remarks>
+/// Marshal.StringToCoTaskMemAnsi() use UTF-8 on POSIX.
+/// </remarks>
+/// <param name="str">String to convert</param>
+/// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with return value to prevent memory leak.</returns>
+public IntPtr StringToCoTaskMemAuto(string str);
+```
+
+#### PlaformDataModel, PlatformLongSize
+
+In C language, the size of the data type changes per target platform. It is called a data model. The most notorious problem is the various size of the `long` data type. These enum properties provide such information.
+
+| Property            | Windows 32bit | Windows 64bit | POSIX 32bit | POSIX 64bit | 
+|---------------------|---------------|---------------|-------------|-------------|
+| `PlatformDataModel` | `ILP32`       | `LLP64`       | `ILP32`     | `LP64`      |
+| `PlatformLongSize`  | `Long32`      | `Long32`      | `Long32`    | `Long64`    |
+
+#### PlatformUnicodeConvention, PlatformUnicodeEncoding
+
+Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM. 
+
+| Property            | Windows | POSIX  |
+|---------------------|---------|--------|
+| `UnicodeConvention` | `Utf16` | `Utf8` |
+| `UnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
+
+`PtrToStringAuto(IntPtr ptr)`, `StringToHGlobalAuto(string str)` and `StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically.
+
+**WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite `UnicodeConvention` value after the class was initialized.
+
 ### Disposable Pattern
 
-The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-dispose). You do not need to implement the pattern yourself. The class had implemented for you.
+The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-dispose), but you do not need to implement the pattern yourself. The class had implemented for you.
 
 ## LoadManagerBase
 
@@ -306,7 +400,7 @@ Some cross-platform libraries use stdcall on Windows and cdecl on POSIX (e.g., z
 On x64, every platform enforces using the standardized fastcall convention. So, in theory, you do not need to care about it.
 
 - Windows: Microsoft x64 calling convention
-- Linux, macOS: System V AMD64 ABI. 
+- POSIX: System V AMD64 ABI. 
 
 I still recommend specifying calling conventions (cdecl, stdcall, winapi) for 32bit compatibility, however.
 
@@ -338,7 +432,7 @@ internal delegate UIntPtr LZ4F_getFrameInfo(
 internal static LZ4F_getFrameInfo GetFrameInfo;
 ```
 
-### LLP64 and LP64
+### Data model and `long` size
 
 **Recommended Workaround**: If the native library use `long` in its APIs, declare two sets of delegates, the LP64 model for POSIX 64bit and LLP64 for the other.
 
@@ -349,3 +443,69 @@ If a native library uses `long` in the exported functions, there is no simple so
 Some libraries with a long history (e.g., zlib) have this problem. Fortunately, many modern cross-platform libraries tend to use types of `<stdint.h>` or similar so that they can ensure stable type size across platforms. 
 
 **Example**: [Joveler.Compression.ZLib](https://www.nuget.org/packages/Joveler.Compression.ZLib) applied this workaround.
+
+### String encoding
+
+**Recommended Workaround**: Declare two sets of delegates, the UTF-16 model for POSIX 64bit and LLP64 for the other.
+
+Different platforms have different Unicode encoding conventions, and native libraries often follow it.
+
+- Windows: `UTF-16`, `ANSI`
+- POSIX: `UTF-8`
+
+Look for which data type the library used for strings.
+
+- `char*`: `ANSI` on Windows and `UTF-8` on POSIX. Mostly used in POSIX libraries.
+- `wchar_t*`: `UTF-16` on Windows and `UTF-32`on POSIX. Windows libraries use it but rarely in POSIX libraries.
+- `tchar*`: `UTF-16` on Windows and `UTF-8` on POSIX. Windows libraries and some cross-platform POSIX libraries use it.
+
+Fortunately, you do not need to duplicate structs in most cases. Put `IntPtr` in place of a string field, then return string as a property using `DynLoaderBase.StringTo*Auto()` and `DynLoaderBase.PtrToStringAuto()` helper methods.
+
+```csharp
+internal class Utf8d
+{
+    internal const UnmanagedType StrType = UnmanagedType.LPStr;
+    internal const CharSet StructCharSet = CharSet.Ansi;
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate ErrorCode wimlib_set_error_file_by_name(
+        [MarshalAs(StrType)] string path);
+    internal wimlib_set_error_file_by_name SetErrorFile;
+    #endregion
+}
+
+internal class Utf16d
+{
+    internal const UnmanagedType StrType = UnmanagedType.LPWStr;
+    internal const CharSet StructCharSet = CharSet.Unicode;
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate ErrorCode wimlib_set_error_file_by_name([MarshalAs(StrType)] string path);
+    internal wimlib_set_error_file_by_name SetErrorFile;
+    #endregion
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct DirEntryBase
+{
+    /// <summary>
+    /// Name of the file, or null if this file is unnamed. Only the root directory of an image will be unnamed.
+    /// </summary>
+    public string FileName => Wim.Lib.PtrToStringAuto(_fileNamePtr);
+    private IntPtr _fileNamePtr;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet = StructCharSet)]
+public struct CaptureSourceBaseL64
+{
+    /// <summary>
+    /// Absolute or relative path to a file or directory on the external filesystem to be included in the image.
+    /// </summary>
+    public string FsSourcePath;
+    /// <summary>
+    /// Destination path in the image.
+    /// To specify the root directory of the image, use @"\". 
+    /// </summary>
+    public string WimTargetPath;
+};
+```

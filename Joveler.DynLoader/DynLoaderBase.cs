@@ -27,22 +27,12 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Joveler.DynLoader
 {
     public abstract class DynLoaderBase : IDisposable
     {
-        #region (abstract) DefaultLibFileName
-        /// <summary>
-        /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
-        /// </summary>
-        /// <remarks>
-        /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
-        /// e.g. zlib is often included in Linux and macOS, but not in Windows.
-        /// </remarks>
-        protected abstract string DefaultLibFileName { get; }
-        #endregion
-
         #region Constructor
         /// <summary>
         /// Load a native dynamic library from a path of `DefaultLibFileName`.
@@ -55,6 +45,7 @@ namespace Joveler.DynLoader
         /// <param name="libPath">A native library file to load.</param>
         protected DynLoaderBase(string libPath)
         {
+            // Should DynLoaderBase use default library filename?
             if (libPath == null)
             {
                 if (DefaultLibFileName == null)
@@ -62,6 +53,49 @@ namespace Joveler.DynLoader
 
                 libPath = DefaultLibFileName;
             }
+
+            // Retreive platform convention
+#if NET451
+            UnicodeConvention = UnicodeConvention.Utf16;
+            PlatformLongSize = PlatformLongSize.Long32;
+            PlatformDataModel = Environment.Is64BitProcess ? PlatformDataModel.LLP64 : PlatformDataModel.ILP32;
+#else
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                UnicodeConvention = UnicodeConvention.Utf16;
+                PlatformLongSize = PlatformLongSize.Long32;
+                switch (RuntimeInformation.ProcessArchitecture)
+                {
+                    case Architecture.Arm:
+                    case Architecture.X86:
+                        PlatformDataModel = PlatformDataModel.ILP32;
+                        break;
+                    case Architecture.Arm64:
+                    case Architecture.X64:
+                    default:
+                        PlatformDataModel = PlatformDataModel.LLP64;
+                        break;
+                }
+            }
+            else
+            {
+                UnicodeConvention = UnicodeConvention.Utf8;
+                switch (RuntimeInformation.ProcessArchitecture)
+                {
+                    case Architecture.Arm:
+                    case Architecture.X86:
+                        PlatformDataModel = PlatformDataModel.ILP32;
+                        PlatformLongSize = PlatformLongSize.Long32;
+                        break;
+                    case Architecture.Arm64:
+                    case Architecture.X64:
+                    default:
+                        PlatformDataModel = PlatformDataModel.LP64;
+                        PlatformLongSize = PlatformLongSize.Long64;
+                        break;
+                }
+            }
+#endif
 
             // Check if we need to set proper directory to search. 
             // If we don't, LoadLibrary can fail when loading chained dll files.
@@ -214,6 +248,17 @@ namespace Joveler.DynLoader
         }
         #endregion
 
+        #region (abstract) DefaultLibFileName
+        /// <summary>
+        /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
+        /// </summary>
+        /// <remarks>
+        /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
+        /// e.g. zlib is often included in Linux and macOS, but not in Windows.
+        /// </remarks>
+        protected abstract string DefaultLibFileName { get; }
+        #endregion
+
         #region (abstract) LoadFunctions, ResetFunctions
         /// <summary>
         /// Load native functions with a GetFuncPtr. Called in the constructors.
@@ -223,6 +268,107 @@ namespace Joveler.DynLoader
         /// Clear pointer of native functions. Called in Dispose(bool).
         /// </summary>
         protected abstract void ResetFunctions();
+        #endregion
+
+        #region (public) Platform Information (Data Model, Unicode Encoding)
+        /// <summary>
+        /// Data model of the platform.
+        /// </summary>
+        public PlatformDataModel PlatformDataModel { get; }
+        /// <summary>
+        /// Size of the `long` type of the platform.
+        /// </summary>
+        public PlatformLongSize PlatformLongSize { get; }
+        /// <summary>
+        /// Default unicode encoding convention of the platform. Overwrite it when the native library does not follow the platform's default convention.
+        /// </summary>
+        /// <remarks>
+        /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+        /// </remarks>
+        public UnicodeConvention UnicodeConvention { get; protected set; }
+        /// <summary>
+        /// Default unicode encoding instance of the platform.
+        /// </summary>
+        /// <remarks>
+        /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+        /// </remarks>
+        public Encoding UnicodeEncoding
+        {
+            get
+            {
+                switch (UnicodeConvention)
+                {
+                    case UnicodeConvention.Utf16:
+                        return Encoding.Unicode;
+                    case UnicodeConvention.Utf8:
+                    default:
+                        return new UTF8Encoding(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Convert buffer pointer to string following platform's default encoding convention. Wrapper of Marshal.PtrToString*().
+        /// </summary>
+        /// <remarks>
+        /// Marshal.PtrToStringAnsi() use UTF-8 on POSIX.
+        /// </remarks>
+        /// <param name="ptr">Buffer pointer to convert to string</param>
+        /// <returns>Converted string.</returns>
+        public string PtrToStringAuto(IntPtr ptr)
+        {
+            if (ptr == IntPtr.Zero)
+                return string.Empty;
+
+            switch (UnicodeConvention)
+            {
+                case UnicodeConvention.Utf16:
+                    return Marshal.PtrToStringUni(ptr);
+                case UnicodeConvention.Utf8:
+                default:
+                    return Marshal.PtrToStringAnsi(ptr);
+            }
+        }
+
+        /// <summary>
+        /// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToHGlobal*().
+        /// </summary>
+        /// <remarks>
+        /// Marshal.StringToHGlobalAnsi() use UTF-8 on POSIX.
+        /// </remarks>
+        /// <param name="str">String to convert</param>
+        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with return value to prevent memory leak.</returns>
+        public IntPtr StringToHGlobalAuto(string str)
+        {
+            switch (UnicodeConvention)
+            {
+                case UnicodeConvention.Utf16:
+                    return Marshal.StringToHGlobalUni(str);
+                case UnicodeConvention.Utf8:
+                default:
+                    return Marshal.StringToHGlobalAnsi(str);
+            }
+        }
+
+        /// <summary>
+        /// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToCoTaskMem*().
+        /// </summary>
+        /// <remarks>
+        /// Marshal.StringToCoTaskMemAnsi() use UTF-8 on POSIX.
+        /// </remarks>
+        /// <param name="str">String to convert</param>
+        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with return value to prevent memory leak.</returns>
+        public IntPtr AutoStringToCoTaskMem(string str)
+        {
+            switch (UnicodeConvention)
+            {
+                case UnicodeConvention.Utf16:
+                    return Marshal.StringToCoTaskMemUni(str);
+                case UnicodeConvention.Utf8:
+                default:
+                    return Marshal.StringToCoTaskMemAnsi(str);
+            }
+        }
         #endregion
     }
 }
