@@ -78,10 +78,12 @@ namespace Joveler.DynLoader.Tests
 
             bool implicitLoadZLib = false;
             bool implicitLoadMagic = false;
+            bool implicitLoadPlataform = false;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 PackagedZLibPath = Path.Combine(arch, zlibDllName);
                 PackagedMagicPath = Path.Combine(arch, magicDllName);
+                implicitLoadPlataform = true;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
@@ -89,6 +91,7 @@ namespace Joveler.DynLoader.Tests
                 PackagedMagicPath = Path.Combine(arch, magicSoName);
                 implicitLoadZLib = true;
                 implicitLoadMagic = true;
+                implicitLoadPlataform = true;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
@@ -105,7 +108,8 @@ namespace Joveler.DynLoader.Tests
             if (implicitLoadMagic)
                 ImplicitMagic = new SimpleFileMagic();
 
-            PlatformLib = new SimplePlatform();
+            if (implicitLoadPlataform)
+                PlatformLib = new SimplePlatform();
         }
 
         [AssemblyCleanup]
