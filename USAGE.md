@@ -136,7 +136,7 @@ The parameterless constructor tries to load the default native library from the 
 
 ### Platform Conventions
 
-Native function signatures are changed by platform difference, such as OS and architecture. Sometimes you have to maintain two or more signature sets to accomodate this difference. To make your life easy, `DynLoaderBase` exposes some helper properties and methods.
+Native function signatures are changed by platform differences, such as OS and architecture. Sometimes you have to maintain two or more signature sets to accommodate this difference. To make your life easy, `DynLoaderBase` exposes some helper properties and methods.
 
 Please refer to [Tips](#Tips) section for more background.
 
@@ -206,7 +206,7 @@ public IntPtr StringToCoTaskMemAuto(string str);
 
 #### PlaformDataModel, PlatformLongSize
 
-In C langauge, size of the data type changes per target platform. It is called as data model. Most notorious problem is the various size of the `long` data type. These enum properties provide such information.
+In C language, the size of the data type changes per target platform. It is called a data model. The most notorious problem is the various size of the `long` data type. These enum properties provide such information.
 
 | Property            | Windows 32bit | Windows 64bit | POSIX 32bit | POSIX 64bit | 
 |---------------------|---------------|---------------|-------------|-------------|
@@ -215,16 +215,16 @@ In C langauge, size of the data type changes per target platform. It is called a
 
 #### PlatformUnicodeConvention, PlatformUnicodeEncoding
 
-Windows often uses UTF-16 LE while many POSIX libraries use UTF-8 without BOM. 
+Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM. 
 
-| Property                    | Windows | POSIX  |
-|-----------------------------|---------|--------|
-| `PlatformUnicodeConvention` | `Utf16` | `Utf8` |
-| `PlatformUnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
+| Property            | Windows | POSIX  |
+|---------------------|---------|--------|
+| `UnicodeConvention` | `Utf16` | `Utf8` |
+| `UnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
 
 `PtrToStringAuto(IntPtr ptr)`, `StringToHGlobalAuto(string str)` and `StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically.
 
-**WARNING**: Native libraries may not follow the platform's default unicode encoding convenction! It is your responsibility to check that which encoding native library is using. For example, some cross-platform libraries which originated from POSIX world does not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`.
+**WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite `UnicodeConvention` value after the class was initialized.
 
 ### Disposable Pattern
 
@@ -448,18 +448,18 @@ Some libraries with a long history (e.g., zlib) have this problem. Fortunately, 
 
 **Recommended Workaround**: Declare two sets of delegates, the UTF-16 model for POSIX 64bit and LLP64 for the other.
 
-Different platforms have different unicode encoding conventions, and native libraries often follow it.
+Different platforms have different Unicode encoding conventions, and native libraries often follow it.
 
 - Windows: `UTF-16`, `ANSI`
 - POSIX: `UTF-8`
 
-Look for which data type the library use for strings.
+Look for which data type the library used for strings.
 
 - `char*`: `ANSI` on Windows and `UTF-8` on POSIX. Mostly used in POSIX libraries.
 - `wchar_t*`: `UTF-16` on Windows and `UTF-32`on POSIX. Windows libraries use it but rarely in POSIX libraries.
 - `tchar*`: `UTF-16` on Windows and `UTF-8` on POSIX. Windows libraries and some cross-platform POSIX libraries use it.
 
-Fortunately, you do not need to duplicate structs in most cases. Put `IntPtr` in place of string field, then return string as a propety using `DynLoaderBase.StringTo*Auto()` and `DynLoaderBase.PtrToStringAuto()` helper methods.
+Fortunately, you do not need to duplicate structs in most cases. Put `IntPtr` in place of a string field, then return string as a property using `DynLoaderBase.StringTo*Auto()` and `DynLoaderBase.PtrToStringAuto()` helper methods.
 
 ```csharp
 internal class Utf8d

@@ -12,8 +12,8 @@ The library provides advanced p/invoke functionality of C functions using [LoadL
 |------------------|-----------|----------------|
 | AppVeyor         | Master    | [![AppVeyor CI Master Branch Build Status](https://ci.appveyor.com/api/projects/status/69h8nrpyqx875bcm/branch/master?svg=true)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/master) |
 |                  | Develop   | [![AppVeyor CI Develop Branch Build Status](https://ci.appveyor.com/api/projects/status/69h8nrpyqx875bcm/branch/develop?svg=true)](https://ci.appveyor.com/project/ied206/joveler-dynloader/branch/develop) |
-| Azure Pipelienes | Master    | [![Azure Pipelienes CI Master Branch Build Status](https://dev.azure.com/ied206/Joveler.DynLoader/_apis/build/status/ied206.Joveler.DynLoader?branchName=master)](https://dev.azure.com/ied206/Joveler.DynLoader/_build) |
-|                  | Develop   | [![Azure Pipelienes CI Develop Branch Build Status](https://dev.azure.com/ied206/Joveler.DynLoader/_apis/build/status/ied206.Joveler.DynLoader?branchName=develop)](https://dev.azure.com/ied206/Joveler.DynLoader/_build) |
+| Azure Pipelines | Master    | [![Azure Pipelines CI Master Branch Build Status](https://dev.azure.com/ied206/Joveler.DynLoader/_apis/build/status/ied206.Joveler.DynLoader?branchName=master)](https://dev.azure.com/ied206/Joveler.DynLoader/_build) |
+|                  | Develop   | [![Azure Pipelines CI Develop Branch Build Status](https://dev.azure.com/ied206/Joveler.DynLoader/_apis/build/status/ied206.Joveler.DynLoader?branchName=develop)](https://dev.azure.com/ied206/Joveler.DynLoader/_build) |
 
 ## Install
 
@@ -24,7 +24,8 @@ The library provides advanced p/invoke functionality of C functions using [LoadL
 ## Features
 
 - `DynLoaderBase`, the cross-platform abstract class designed to wrap native library easily.
-- `LoadManagerBase`, the abstract class helps developers to manage `DynLoaderBase` singleton instance.
+- `LoadManagerBase`, the abstract class helps developers to manage `DynLoaderBase` instance in a thread-safe way.
+- Platform convention helper properties and methods.
 
 ## Support
 
