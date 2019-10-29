@@ -28,11 +28,11 @@ using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader
 {
-    internal class PosixSafeLibHandle : SafeHandle
+    internal class LinuxSafeLibHandle : SafeHandle
     {
-        public PosixSafeLibHandle(string libPath) : base(IntPtr.Zero, true)
+        public LinuxSafeLibHandle(string libPath) : base(IntPtr.Zero, true)
         {
-            handle = NativeMethods.Posix.DLOpen(libPath, NativeMethods.Posix.RTLD_NOW | NativeMethods.Posix.RTLD_GLOBAL);
+            handle = NativeMethods.Linux.DLOpen(libPath, NativeMethods.Linux.RTLD_NOW | NativeMethods.Linux.RTLD_GLOBAL);
         }
 
         /// <inheritdocs />
@@ -41,7 +41,7 @@ namespace Joveler.DynLoader
         /// <inheritdocs />
         protected override bool ReleaseHandle()
         {
-            int ret = NativeMethods.Posix.DLClose(handle);
+            int ret = NativeMethods.Linux.DLClose(handle);
             return ret == 0;
         }
     }
