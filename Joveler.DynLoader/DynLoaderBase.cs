@@ -129,15 +129,10 @@ namespace Joveler.DynLoader
                 }
             }
 #if !NET451
-            else
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 // Prepare chained library files.
-                string envVar = null;
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    envVar = "LD_LIBRARY_PATH";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    envVar = "DYLD_LIBRARY_PATH";
-
+                const string envVar = "LD_LIBRARY_PATH";
                 if (setLibSearchDir && envVar != null)
                 {
                     // Library search path guard with try ~ catch
@@ -147,7 +142,7 @@ namespace Joveler.DynLoader
                         string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
                         Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
 
-                        LoadPosixModule(libPath);
+                        LoadLinuxModule(libPath);
                     }
                     finally
                     {
@@ -156,8 +151,37 @@ namespace Joveler.DynLoader
                 }
                 else
                 {
-                    LoadPosixModule(libPath);
+                    LoadLinuxModule(libPath);
                 }
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // Prepare chained library files.
+                const string envVar = "DYLD_LIBRARY_PATH";
+                if (setLibSearchDir && envVar != null)
+                {
+                    // Library search path guard with try ~ catch
+                    string bakLibSerachPath = Environment.GetEnvironmentVariable(envVar);
+                    try
+                    {
+                        string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
+                        Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
+
+                        LoadMacModule(libPath);
+                    }
+                    finally
+                    {
+                        Environment.SetEnvironmentVariable(envVar, bakLibSerachPath);
+                    }
+                }
+                else
+                {
+                    LoadMacModule(libPath);
+                }
+            }
+            else
+            {
+                throw new PlatformNotSupportedException();
             }
 #endif
 
@@ -209,11 +233,18 @@ namespace Joveler.DynLoader
                 throw new ArgumentException($"Unable to load [{dllPath}]", new Win32Exception());
         }
 
-        protected void LoadPosixModule(string soPath)
+        protected void LoadLinuxModule(string soPath)
         {
-            _hModule = new PosixSafeLibHandle(soPath);
+            _hModule = new LinuxSafeLibHandle(soPath);
             if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Posix.DLError()}");
+                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Linux.DLError()}");
+        }
+
+        protected void LoadMacModule(string soPath)
+        {
+            _hModule = new MacSafeLibHandle(soPath);
+            if (_hModule.IsInvalid)
+                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Mac.DLError()}");
         }
         #endregion
 
@@ -236,11 +267,21 @@ namespace Joveler.DynLoader
                     throw new InvalidOperationException($"Cannot import [{funcSymbol}]", new Win32Exception());
             }
 #if !NET451
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
+                if (funcPtr == IntPtr.Zero)
+                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Linux.DLError()}");
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                funcPtr = NativeMethods.Mac.DLSym(_hModule, funcSymbol);
+                if (funcPtr == IntPtr.Zero)
+                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Mac.DLError()}");
+            }
             else
             {
-                funcPtr = NativeMethods.Posix.DLSym(_hModule, funcSymbol);
-                if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Posix.DLError()}");
+                throw new PlatformNotSupportedException();
             }
 #endif
 

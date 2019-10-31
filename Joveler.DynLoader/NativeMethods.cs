@@ -72,23 +72,46 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region Posix libdl API
-        internal static class Posix
+        #region Linux libdl API
+        internal static class Linux
         {
+            internal const string Library = "libdl.so.2";
             internal const int RTLD_NOW = 0x0002;
             internal const int RTLD_GLOBAL = 0x0100;
 
-            [DllImport("libdl", EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl)]
+            [DllImport(Library, EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl)]
             internal static extern IntPtr DLOpen([MarshalAs(UnmanagedType.LPStr)] string fileName, int flags);
 
-            [DllImport("libdl", EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
+            [DllImport(Library, EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int DLClose(IntPtr handle);
 
             internal static string DLError() => Marshal.PtrToStringAnsi(DLErrorPtr());
-            [DllImport("libdl", EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
+            [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
 
-            [DllImport("libdl", EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
+            [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
+        }
+        #endregion
+
+        #region MacOS libdl API
+        internal static class Mac
+        {
+            internal const string Library = "libdl.dylib";
+            internal const int RTLD_NOW = 0x0002;
+            internal const int RTLD_GLOBAL = 0x0100;
+
+            [DllImport(Library, EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern IntPtr DLOpen([MarshalAs(UnmanagedType.LPStr)] string fileName, int flags);
+
+            [DllImport(Library, EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int DLClose(IntPtr handle);
+
+            internal static string DLError() => Marshal.PtrToStringAnsi(DLErrorPtr());
+            [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
+            private static extern IntPtr DLErrorPtr();
+
+            [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
             internal static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
         }
         #endregion

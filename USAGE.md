@@ -222,13 +222,13 @@ Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM.
 | `UnicodeConvention` | `Utf16` | `Utf8` |
 | `UnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
 
-`PtrToStringAuto(IntPtr ptr)`, `StringToHGlobalAuto(string str)` and `StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically.
+`PtrToStringAuto(IntPtr ptr)`, `StringToHGlobalAuto(string str)` and `StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on value of `UnicodeConvention` property.
 
 **WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite `UnicodeConvention` value after the class was initialized.
 
 ### Disposable Pattern
 
-The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-dispose), but you do not need to implement the pattern yourself. The class had implemented for you.
+The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-dispose), but you do not need to implement the pattern yourself. The class had already implemented it for you.
 
 ## LoadManagerBase
 
@@ -416,7 +416,7 @@ When building a wrapper of a cross-platform library, the size difference of `siz
 
 `size_t` also has a different size per architecture, similar to the `long` size difference per OS. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64).
 
-You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .Net runtime does not provide the direct mechanism for it, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
+You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .Net runtime does not provide the direct mechanism, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
 
 I recommend to use `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
 

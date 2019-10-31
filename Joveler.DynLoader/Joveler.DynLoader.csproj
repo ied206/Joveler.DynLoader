@@ -3,10 +3,10 @@
     <TargetFrameworks>net451;netstandard2.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0</TargetFrameworks>
     <PackageId>Joveler.DynLoader</PackageId>
-    <Version>1.2.0</Version>
+    <Title>Joveler.DynLoader</Title>
+    <Version>1.2.1</Version>
     <Authors>Hajin Jang</Authors>
     <Company>Joveler</Company>
-    <Product>Joveler.DynLoader</Product>
     <Description>Cross-platform native dynamic library loader for .Net.
 Provides advanced p/invoke functionality using LoadLibrary and libdl.
 Supports Windows, Linux, and macOS.</Description>
@@ -15,7 +15,7 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Add platform convention helper properties and methods</PackageReleaseNotes>
+    <PackageReleaseNotes>- Address libdl.so naming issue for CentOS</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <ItemGroup>
