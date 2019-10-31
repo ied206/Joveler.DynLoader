@@ -15,7 +15,7 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Address libdl.so naming issue</PackageReleaseNotes>
+    <PackageReleaseNotes>- Address libdl.so naming issue for CentOS</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <ItemGroup>
