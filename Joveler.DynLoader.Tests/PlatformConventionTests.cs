@@ -255,10 +255,10 @@ namespace Joveler.DynLoader.Tests
                     { 
                         Marshal.FreeHGlobal(fromUniPtr); 
                     }
-                    IntPtr fromAnsiPtr = defaultInstance.StringToHGlobalAuto(str);
+                    IntPtr fromAnsiPtr = customInstance.StringToHGlobalAuto(str);
                     try
                     {
-                        fromAnsiStr = Marshal.PtrToStringUni(fromAnsiPtr);
+                        fromAnsiStr = Marshal.PtrToStringAnsi(fromAnsiPtr);
                         Assert.IsTrue(str.Equals(fromAnsiStr, StringComparison.Ordinal));
                     }
                     finally
@@ -277,10 +277,10 @@ namespace Joveler.DynLoader.Tests
                     {
                         Marshal.FreeCoTaskMem(fromUniPtr);
                     }
-                    fromAnsiPtr = defaultInstance.StringToCoTaskMemAuto(str);
+                    fromAnsiPtr = customInstance.StringToCoTaskMemAuto(str);
                     try
                     {
-                        fromAnsiStr = Marshal.PtrToStringUni(fromAnsiPtr);
+                        fromAnsiStr = Marshal.PtrToStringAnsi(fromAnsiPtr);
                         Assert.IsTrue(str.Equals(fromAnsiStr, StringComparison.Ordinal));
                     }
                     finally
@@ -300,17 +300,17 @@ namespace Joveler.DynLoader.Tests
                     IntPtr fromUtf8Ptr = defaultInstance.StringToHGlobalAuto(str);
                     try
                     {
-                        fromUtf8Str = Marshal.PtrToStringUni(fromUtf8Ptr);
+                        fromUtf8Str = Marshal.PtrToStringAnsi(fromUtf8Ptr);
                         Assert.IsTrue(str.Equals(fromUtf8Str, StringComparison.Ordinal));
                     }
                     finally
                     {
                         Marshal.FreeHGlobal(fromUtf8Ptr);
                     }
-                    fromUtf8Ptr = defaultInstance.StringToHGlobalAuto(str);
+                    fromUtf8Ptr = customInstance.StringToHGlobalAuto(str);
                     try
                     {
-                        fromUtf8Str = Marshal.PtrToStringUni(fromUtf8Ptr);
+                        fromUtf8Str = Marshal.PtrToStringAnsi(fromUtf8Ptr);
                         Assert.IsTrue(str.Equals(fromUtf8Str, StringComparison.Ordinal));
                     }
                     finally
@@ -322,17 +322,17 @@ namespace Joveler.DynLoader.Tests
                     fromUtf8Ptr = defaultInstance.StringToCoTaskMemAuto(str);
                     try
                     {
-                        fromUtf8Str = Marshal.PtrToStringUni(fromUtf8Ptr);
+                        fromUtf8Str = Marshal.PtrToStringAnsi(fromUtf8Ptr);
                         Assert.IsTrue(str.Equals(fromUtf8Str, StringComparison.Ordinal));
                     }
                     finally
                     {
                         Marshal.FreeCoTaskMem(fromUtf8Ptr);
                     }
-                    fromUtf8Ptr = defaultInstance.StringToCoTaskMemAuto(str);
+                    fromUtf8Ptr = customInstance.StringToCoTaskMemAuto(str);
                     try
                     {
-                        fromUtf8Str = Marshal.PtrToStringUni(fromUtf8Ptr);
+                        fromUtf8Str = Marshal.PtrToStringAnsi(fromUtf8Ptr);
                         Assert.IsTrue(str.Equals(fromUtf8Str, StringComparison.Ordinal));
                     }
                     finally
