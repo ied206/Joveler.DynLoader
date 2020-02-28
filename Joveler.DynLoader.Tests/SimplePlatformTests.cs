@@ -34,7 +34,7 @@ namespace Joveler.DynLoader.Tests
     public class SimplePlatformTests
     {
         [TestMethod]
-        public unsafe void Windows()
+        public void PerOS()
         {
             SimplePlatform p = TestSetup.PlatformLib;
 

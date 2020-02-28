@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019 Hajin Jang
+    Copyright (C) 2019-2020 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -27,37 +27,81 @@ namespace Joveler.DynLoader
 {
     #region ILP32, LP64 and LLP64 Data Models
     /// <summary>
-    /// Data model of the platform.
+    /// The data model of the platform.
     /// </summary>
     public enum PlatformDataModel
     {
-        LP64 = 0, // POSIX 64bit
-        LLP64 = 1, // Windows 64bit
-        ILP32 = 2, // Windows, POSIX 32bit 
+        /// <summary>
+        /// The data model of 64bit POSIX.
+        /// <para>In C, int = 32bit, long = 64bit, pointer = 64bit.</para>
+        /// </summary>
+        LP64 = 0,
+        /// <summary>
+        /// The data model of 64bit Windows.
+        /// <para>In C, int = 32bit, long = 32bit, long long = 64bit, pointer = 64bit.</para>
+        /// </summary>
+        LLP64 = 1,
+        /// <summary>
+        /// The data model of 32bit Windows and 32bit POSIX.
+        /// <para>In C, int = 32bit, long = 32bit, pointer = 32bit.</para>
+        /// </summary>
+        ILP32 = 2,
     }
 
     /// <summary>
-    /// Size of the `long` type of the platform.
+    /// Size of the long type of the platform.
     /// </summary>
     public enum PlatformLongSize
     {
-        Long64 = 0, // POSIX 64bit (LP64)
-        Long32 = 1, // Windows, POSIX 32bit (ILP32, LLP64)
+        /// <summary>
+        /// In C, long is 64bit.
+        /// <para>The size of the long in 64bit POSIX (LP64).</para>
+        /// </summary>
+        Long64 = 0,
+        /// <summary>
+        /// In C, long is 32bit.
+        /// <para>The size of the long in 32bit Windows (ILP32) and POSIX (LLP64).</para>
+        /// </summary>
+        Long32 = 1,
+    }
+    #endregion
+
+    #region Platform Bitness (for size_t handling)
+    /// <summary>
+    /// The bitness of the Platform. Equal to the size of address space and size_t.
+    /// </summary>
+    public enum PlatformBitness
+    {
+        /// <summary>
+        /// Platform is 32bit.
+        /// </summary>
+        Bit32 = 0,
+        /// <summary>
+        /// Platform is 64bit.
+        /// </summary>
+        Bit64 = 1,
     }
     #endregion
 
     #region Default Unicode Encoding Convention
     /// <summary>
     /// Default unicode encoding convention of the platform. 
+    /// <para>Some native libraries does not follow default unicode encoding convention of the platform, be careful!</para>
     /// </summary>
-    /// <remarks>
-    /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
-    /// </remarks>
     public enum UnicodeConvention
     {
-        Utf8 = 0, // POSIX
-        Ansi = 0, // Windows
-        Utf16 = 1, // Windows
+        /// <summary>
+        /// Default unicode encoding of POSIX.
+        /// </summary>
+        Utf8 = 0,
+        /// <summary>
+        /// Default non-unicode encoding of Windows.
+        /// </summary>
+        Ansi = 0,
+        /// <summary>
+        /// Default unicode encoding of Windows.
+        /// </summary>
+        Utf16 = 1,
     }
     #endregion
 }

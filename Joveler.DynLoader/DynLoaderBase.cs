@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019 Hajin Jang
+    Copyright (C) 2019-2020 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -58,7 +58,16 @@ namespace Joveler.DynLoader
 #if NET451
             UnicodeConvention = UnicodeConvention.Utf16;
             PlatformLongSize = PlatformLongSize.Long32;
-            PlatformDataModel = Environment.Is64BitProcess ? PlatformDataModel.LLP64 : PlatformDataModel.ILP32;
+            if (Environment.Is64BitProcess)
+            {
+                PlatformDataModel = PlatformDataModel.LLP64;
+                PlatformBitness = PlatformBitness.Bit64;
+            }
+            else
+            {
+                PlatformDataModel = PlatformDataModel.ILP32;
+                PlatformBitness = PlatformBitness.Bit32;
+            }
 #else
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -84,16 +93,29 @@ namespace Joveler.DynLoader
                 {
                     case Architecture.Arm:
                     case Architecture.X86:
-                        PlatformDataModel = PlatformDataModel.ILP32;
                         PlatformLongSize = PlatformLongSize.Long32;
+                        PlatformDataModel = PlatformDataModel.ILP32;
                         break;
                     case Architecture.Arm64:
                     case Architecture.X64:
                     default:
-                        PlatformDataModel = PlatformDataModel.LP64;
                         PlatformLongSize = PlatformLongSize.Long64;
+                        PlatformDataModel = PlatformDataModel.LP64;
                         break;
                 }
+            }
+
+            switch (RuntimeInformation.ProcessArchitecture)
+            {
+                case Architecture.Arm:
+                case Architecture.X86:
+                    PlatformBitness = PlatformBitness.Bit32;
+                    break;
+                case Architecture.Arm64:
+                case Architecture.X64:
+                default:
+                    PlatformBitness = PlatformBitness.Bit64;
+                    break;
             }
 #endif
 
@@ -311,7 +333,7 @@ namespace Joveler.DynLoader
         protected abstract void ResetFunctions();
         #endregion
 
-        #region (public) Platform Information (Data Model, Unicode Encoding)
+        #region (public) Platform Information (Data Model, size_t, Unicode Encoding)
         /// <summary>
         /// Data model of the platform.
         /// </summary>
@@ -320,6 +342,10 @@ namespace Joveler.DynLoader
         /// Size of the `long` type of the platform.
         /// </summary>
         public PlatformLongSize PlatformLongSize { get; }
+        /// <summary>
+        /// Bitness of the platform. 
+        /// </summary>
+        public PlatformBitness PlatformBitness { get; }
         /// <summary>
         /// Default unicode encoding convention of the platform. Overwrite it when the native library does not follow the platform's default convention.
         /// </summary>
@@ -346,6 +372,49 @@ namespace Joveler.DynLoader
                         return new UTF8Encoding(false);
                 }
             }
+        }
+
+        /// <summary>
+        /// Safely convert <see cref="ulong"/> (uint64_t) to <see cref="UIntPtr"/> (size_t).
+        /// Throws an <see cref="PlatformNotSupportedException"/> if the value exceeds platform's address space.
+        /// </summary>
+        /// <param name="size">To-be-converted value as <see cref="ulong"/> (uint64_t).</param>
+        /// <returns>Converted value as <see cref="UIntPtr"/> (size_t).</returns>
+        /// <exception cref="PlatformNotSupportedException">
+        /// The value of <paramref name="size"/> is larger than <see cref="uint.MaxValue"/> in 32bit platform.
+        /// </exception>
+        public UIntPtr ToSizeT(ulong size)
+        {
+            switch (PlatformBitness)
+            {
+                case PlatformBitness.Bit32:
+                    if (uint.MaxValue < size)
+                        throw new PlatformNotSupportedException($"size_t [0x{size:X}] is larger than 32bit address space.");
+                    break;
+            }
+            return new UIntPtr(size);
+        }
+
+        /// <summary>
+        /// Safely convert <see cref="UIntPtr"/> (size_t) to <see cref="ulong"/> (uint64_t).
+        /// Throws an <see cref="PlatformNotSupportedException"/> if the value exceeds platform's address space.
+        /// </summary>
+        /// <param name="size">To-be-converted value as <see cref="UIntPtr"/> (size_t).</param>
+        /// <returns>Converted value as <see cref="ulong"/> (uint64_t).</returns>
+        /// <exception cref="PlatformNotSupportedException">
+        /// The value of <paramref name="size"/> is larger than <see cref="uint.MaxValue"/> in 32bit platform.
+        /// </exception>
+        public ulong FromSizeT(UIntPtr size)
+        {
+            ulong dest = size.ToUInt64();
+            switch (PlatformBitness)
+            {
+                case PlatformBitness.Bit32:
+                    if (uint.MaxValue < dest)
+                        throw new PlatformNotSupportedException($"size_t [0x{size:X}] is larger than 32bit address space.");
+                    break;
+            }
+            return dest;
         }
 
         /// <summary>
@@ -378,7 +447,7 @@ namespace Joveler.DynLoader
         /// Marshal.StringToHGlobalAnsi() use UTF-8 on POSIX.
         /// </remarks>
         /// <param name="str">String to convert</param>
-        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with return value to prevent memory leak.</returns>
+        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with returned pointer to prevent memory leak.</returns>
         public IntPtr StringToHGlobalAuto(string str)
         {
             switch (UnicodeConvention)
@@ -398,8 +467,8 @@ namespace Joveler.DynLoader
         /// Marshal.StringToCoTaskMemAnsi() use UTF-8 on POSIX.
         /// </remarks>
         /// <param name="str">String to convert</param>
-        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with return value to prevent memory leak.</returns>
-        public IntPtr AutoStringToCoTaskMem(string str)
+        /// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with returned pointer to prevent memory leak.</returns>
+        public IntPtr StringToCoTaskMemAuto(string str)
         {
             switch (UnicodeConvention)
             {

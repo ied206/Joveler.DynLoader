@@ -24,6 +24,10 @@ namespace Joveler.DynLoader.Tests
                 {
                     return "libmagic.so.1";
                 }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    return "libSystem.dylib";
+                }
 
                 throw new PlatformNotSupportedException();
             }
@@ -45,7 +49,16 @@ namespace Joveler.DynLoader.Tests
 
         protected override void ResetFunctions()
         {
-
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                GetFullPathNamePtrW = null;
+                GetFullPathNamePtrA = null;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                MagicGetPathPtr1 = null;
+                MagicGetPathPtr2 = null;
+            }
         }
 
         public void ForceChangeUnicode(UnicodeConvention newConvention)

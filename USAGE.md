@@ -136,27 +136,61 @@ The parameterless constructor tries to load the default native library from the 
 
 ### Platform Conventions
 
-Native function signatures are changed by platform differences, such as OS and architecture. Sometimes you have to maintain two or more signature sets to accommodate this difference. To make your life easy, `DynLoaderBase` exposes some helper properties and methods.
+Native function signatures are changed by platform differences, such as OS and architecture. Sometimes you have to maintain two or more signature sets to accommodate this difference. To make your life easy, `DynLoaderBase` provides helper properties and methods.
 
 Please refer to [Tips](#Tips) section for more background.
 
 ```csharp
 /// <summary>
-/// Data model of the platform.
+/// The data model of the platform.
 /// </summary>
 public enum PlatformDataModel
 {
-    LP64 = 0, // POSIX 64bit
-    LLP64 = 1, // Windows 64bit
-    ILP32 = 2, // Windows, POSIX 32bit 
+    /// <summary>
+    /// The data model of 64bit POSIX.
+    /// <para>In C, int = 32bit, long = 64bit, pointer = 64bit.</para>
+    /// </summary>
+    LP64 = 0,
+    /// <summary>
+    /// The data model of 64bit Windows.
+    /// <para>In C, int = 32bit, long = 32bit, long long = 64bit, pointer = 64bit.</para>
+    /// </summary>
+    LLP64 = 1,
+    /// <summary>
+    /// The data model of 32bit Windows and 32bit POSIX.
+    /// <para>In C, int = 32bit, long = 32bit, pointer = 32bit.</para>
+    /// </summary>
+    ILP32 = 2,
 }
 /// <summary>
-/// Size of the `long` type of the platform.
+/// Size of the long type of the platform.
 /// </summary>
 public enum PlatformLongSize
 {
-    Long64 = 0, // POSIX 64bit (LP64)
-    Long32 = 1, // Windows, POSIX 32bit (ILP32, LLP64)
+    /// <summary>
+    /// In C, long is 64bit.
+    /// <para>The size of the long in 64bit POSIX (LP64).</para>
+    /// </summary>
+    Long64 = 0,
+    /// <summary>
+    /// In C, long is 32bit.
+    /// <para>The size of the long in 32bit Windows (ILP32) and POSIX (LLP64).</para>
+    /// </summary>
+    Long32 = 1,
+}
+/// <summary>
+/// The bitness of the Platform. Equal to the size of address space and size_t.
+/// </summary>
+public enum PlatformBitness
+{
+    /// <summary>
+    /// Platform is 32bit.
+    /// </summary>
+    Bit32 = 0,
+    /// <summary>
+    /// Platform is 64bit.
+    /// </summary>
+    Bit64 = 1,
 }
 /// <summary>
 /// Default unicode encoding convention of the platform. 
@@ -164,10 +198,19 @@ public enum PlatformLongSize
 /// <remarks>
 /// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
 /// </remarks>
-public enum PlatformUnicodeConvention
+public enum UnicodeConvention
 {
-    Utf8 = 0, // POSIX
-    Utf16 = 1, // Windows
+    /// <summary>
+    /// Default unicode encoding of POSIX.
+    Utf8 = 0,
+    /// <summary>
+    /// Default non-unicode encoding of Windows.
+    /// </summary>
+    Ansi = 0,
+    /// <summary>
+    /// Default unicode encoding of Windows.
+    /// </summary>
+    Utf16 = 1,
 }
 
 public PlatformDataModel PlatformDataModel { get; }
@@ -175,6 +218,26 @@ public PlatformLongSize PlatformLongSize { get; }
 public PlatformUnicodeConvention PlatformUnicodeConvention { get; }
 public Encoding PlatformUnicodeEncoding { get; }
 
+/// <summary>
+/// Safely convert ulong (uint64_t) to UIntPtr (size_t).
+/// Throws an PlatformNotSupportedException if the value exceeds platform's address space.
+/// </summary>
+/// <param name="size">To-be-converted value as ulong (uint64_t).</param>
+/// <returns>Converted value as UIntPtr (size_t).</returns>
+/// <exception cref="PlatformNotSupportedException">
+/// The value of size is larger than uint.MaxValue in 32bit platform.
+/// </exception>
+public UIntPtr ToSizeT(ulong size);
+/// <summary>
+/// Safely convert UIntPtr (size_t) to ulong (uint64_t).
+/// Throws an PlatformNotSupportedException if the value exceeds platform's address space.
+/// </summary>
+/// <param name="size">To-be-converted value as UIntPtr (size_t).</param>
+/// <returns>Converted value as ulong (uint64_t).</returns>
+/// <exception cref="PlatformNotSupportedException">
+/// The value of size is larger than uint.MaxValue in 32bit platform.
+/// </exception>
+public ulong FromSizeT(UIntPtr size);
 /// <summary>
 /// Convert buffer pointer to string following platform's default encoding convention. Wrapper of Marshal.PtrToString*().
 /// </summary>
@@ -206,12 +269,25 @@ public IntPtr StringToCoTaskMemAuto(string str);
 
 #### PlaformDataModel, PlatformLongSize
 
-In C language, the size of the data type changes per target platform. It is called a data model. The most notorious problem is the various size of the `long` data type. These enum properties provide such information.
+In C language, the size of a data type may change per target platform. It is called a data model. The most notorious problem is the various size of the `long` data type. These enum properties provide such information.
 
 | Property            | Windows 32bit | Windows 64bit | POSIX 32bit | POSIX 64bit | 
 |---------------------|---------------|---------------|-------------|-------------|
 | `PlatformDataModel` | `ILP32`       | `LLP64`       | `ILP32`     | `LP64`      |
 | `PlatformLongSize`  | `Long32`      | `Long32`      | `Long32`    | `Long64`    |
+
+#### PlatformBitness
+
+`PlatformBitness` represents the bitness of the platform, which is equal to the size of the address space and `size_t`.
+
+| Property              | 32bit   | 64bit   |
+|-----------------------|---------|---------|
+| `PlatformBitness`     | `Bit32` | `Bit64` |
+| Size of the `UIntPtr` | 32bit   | 64bit   |
+
+It is useful when to have to write different code per bitness, or handle marshalling of `size_t`.
+
+`size_t` can be represented as `UIntPtr` in P/Invoke signatures. DynLoaderBase's `UIntPtr ToSizeT(ulong size)` and `ulong FromSizeT(UIntPtr size)` helps safe conversion between `ulong` and `UIntPtr`, so the value of `size_t` can be safely marshalled as `ulong`. They check if the to-be-converted-value is valid in the platform address space, and throw `PlatformNotSupportedException` if not. For example, if the `ulong` variable contains the value larger than `uint.MaxValue` in 32bit platform, `PlatformNotSupportedException` will be thrown.
 
 #### PlatformUnicodeConvention, PlatformUnicodeEncoding
 
@@ -222,7 +298,7 @@ Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM.
 | `UnicodeConvention` | `Utf16` | `Utf8` |
 | `UnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
 
-`PtrToStringAuto(IntPtr ptr)`, `StringToHGlobalAuto(string str)` and `StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on value of `UnicodeConvention` property.
+`string PtrToStringAuto(IntPtr ptr)`, `IntPtr StringToHGlobalAuto(string str)` and `IntPtr StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on value of `UnicodeConvention` property.
 
 **WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite `UnicodeConvention` value after the class was initialized.
 
@@ -410,17 +486,17 @@ Similar to x64, platforms are known to enforce one standardized calling conventi
 
 ### Pointer size (`size_t`)
 
-**Recommended Workaround**: Use `UIntPtr`.
+**Recommended Workaround**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .Net world. DynLoader's `ToSizeT()`, `FromSizeT()` methods provide safe way of converting values between `ulong` and `UIntPtr`.
 
-When building a wrapper of a cross-platform library, the size difference of `size_t` per architecture may cause trouble.
-
-`size_t` also has a different size per architecture, similar to the `long` size difference per OS. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64).
+`size_t` has a different size per architecture. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64). It is troublesome in cross-platform P/Invoke, as no direct counterpart exists in .Net.
 
 You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .Net runtime does not provide the direct mechanism, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
 
 I recommend to use `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
 
-**Example**: [Joveler.Compression.LZ4](https://github.com/ied206/Joveler.Compression/tree/master/Joveler.Compression.LZ4) applied this workaround.
+If you have to expose the value of `size_t` directly in the public API, consider using `ulong` type. Use `ToSizeT()`, `FromSizeT()` methods to safely convert `UIntPtr` (which represents raw `size_t`) to and from `ulong`. 
+
+**Example**: [Joveler.Compression.LZ4](https://github.com/ied206/Joveler.Compression/tree/master/Joveler.Compression.LZ4) use this trick.
 
 ```csharp
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -448,7 +524,7 @@ Some libraries with a long history (e.g., zlib) have this problem. Fortunately, 
 
 **Recommended Workaround**: Declare two sets of delegates, the UTF-16 model for POSIX 64bit and LLP64 for the other.
 
-Different platforms have different Unicode encoding conventions, and native libraries often follow it.
+Different platforms have different charset and encoding conventions, and native libraries often follow it.
 
 - Windows: `UTF-16`, `ANSI`
 - POSIX: `UTF-8`
@@ -460,6 +536,8 @@ Look for which data type the library used for strings.
 - `tchar*`: `UTF-16` on Windows and `UTF-8` on POSIX. Windows libraries and some cross-platform POSIX libraries use it.
 
 Fortunately, you do not need to duplicate structs in most cases. Put `IntPtr` in place of a string field, then return string as a property using `DynLoaderBase.StringTo*Auto()` and `DynLoaderBase.PtrToStringAuto()` helper methods.
+
+**Example**
 
 ```csharp
 internal class Utf8d
