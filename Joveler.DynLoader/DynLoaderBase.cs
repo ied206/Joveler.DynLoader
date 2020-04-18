@@ -309,6 +309,18 @@ namespace Joveler.DynLoader
 
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
         }
+
+        /// <summary>
+        /// Get a delegate of a native function from a library.
+        /// The method will use name of the given delegate as function symbol.
+        /// </summary>
+        /// <typeparam name="T">Delegate type of a native function.</typeparam>
+        /// <returns>Delegate instance of a native function.</returns>
+        protected T GetFuncPtr<T>() where T : Delegate
+        {
+            string funcSymbol = typeof(T).Name;
+            return GetFuncPtr<T>(funcSymbol);
+        }
         #endregion
 
         #region (abstract) DefaultLibFileName

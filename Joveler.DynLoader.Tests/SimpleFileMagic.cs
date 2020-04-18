@@ -35,7 +35,7 @@ namespace Joveler.DynLoader.Tests
         /// <inheritdocs/>
         protected override void LoadFunctions()
         {
-            MagicVersion = GetFuncPtr<magic_version>(nameof(magic_version));
+            MagicVersion = GetFuncPtr<magic_version>();
         }
 
         /// <inheritdocs/>
