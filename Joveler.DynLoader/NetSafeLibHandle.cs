@@ -24,6 +24,7 @@
 */
 
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader
@@ -33,7 +34,13 @@ namespace Joveler.DynLoader
     {
         public NetSafeLibHandle(string libPath) : base(IntPtr.Zero, true)
         {
-            handle = NativeLibrary.Load(libPath);
+            const DllImportSearchPath searchPaths =
+                DllImportSearchPath.AssemblyDirectory |
+                DllImportSearchPath.ApplicationDirectory |
+                DllImportSearchPath.UseDllDirectoryForDependencies |
+                DllImportSearchPath.UserDirectories |
+                DllImportSearchPath.System32;
+            handle = NativeLibrary.Load(libPath, Assembly.GetExecutingAssembly(), searchPaths);
         }
 
         /// <inheritdocs />

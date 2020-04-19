@@ -24,7 +24,9 @@
 */
 
 using System;
-using System.ComponentModel;
+#if !NETCOREAPP3_1
+using System.ComponentModel; // For Win32Exception
+#endif
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;

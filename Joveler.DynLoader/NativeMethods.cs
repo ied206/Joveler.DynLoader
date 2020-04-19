@@ -37,6 +37,7 @@ namespace Joveler.DynLoader
         internal static class Win32
         {
             [DllImport("kernel32.dll", SetLastError = true)]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             internal static extern IntPtr LoadLibraryW([MarshalAs(UnmanagedType.LPWStr)] string lpFileName);
             /// <summary>
             /// 
@@ -45,14 +46,18 @@ namespace Joveler.DynLoader
             /// <param name="procName"></param>
             /// <returns></returns>
             [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             internal static extern IntPtr GetProcAddress(SafeHandle hModule, [MarshalAs(UnmanagedType.LPStr)] string procName);
 
             [DllImport("kernel32.dll")]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             internal static extern int FreeLibrary(IntPtr hModule);
 
             [DllImport("kernel32.dll", SetLastError = true)]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             internal static extern int SetDllDirectoryW([MarshalAs(UnmanagedType.LPWStr)] string lpPathName);
             [DllImport("kernel32.dll", SetLastError = true)]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             private static extern int GetDllDirectoryW(int nBufferLength, StringBuilder lpBuffer);
 
             internal static string GetDllDirectory()
@@ -74,6 +79,7 @@ namespace Joveler.DynLoader
             const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
             const uint FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
             [DllImport("kernel32.dll", SetLastError = true)]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             private static extern uint FormatMessageW(
                 uint dwFlags,
                 IntPtr lpSource,
