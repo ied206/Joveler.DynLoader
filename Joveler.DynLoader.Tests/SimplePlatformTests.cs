@@ -42,7 +42,7 @@ namespace Joveler.DynLoader.Tests
             {
                 Assert.IsNotNull(p);
 
-                // Assumption : No known non-unicode encoding support Korean, non-ASCII latin, Chinese characters at once.
+                // Assumption: No known non-unicode encoding support ancient Korean, non-ASCII latin, Chinese characters at once.
                 const string uniFile = "ᄒᆞᆫ글ḀḘ韓國.txt";
                 const string asciiFile = "ASCII.txt";
                 string bclUniFullPath = Path.GetFullPath(uniFile);

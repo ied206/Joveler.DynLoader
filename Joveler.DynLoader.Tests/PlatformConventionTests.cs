@@ -153,34 +153,18 @@ namespace Joveler.DynLoader.Tests
             UIntPtr sizeFrom32 = new UIntPtr(uint.MaxValue);
             ulong to32 = instance.FromSizeT(sizeFrom32);
             Assert.AreEqual(sizeFrom32.ToUInt64(), to32);
-
-            bool success = false;
-            UIntPtr sizeFrom64 = new UIntPtr(ulong.MaxValue);
+            
             switch (RuntimeInformation.ProcessArchitecture)
             {
-                case Architecture.X86:
-                case Architecture.Arm:
-                    try
-                    {
-                        instance.FromSizeT(sizeFrom64);
-                    }
-                    catch (PlatformNotSupportedException)
-                    {
-                        success = true;
-                    }
-                    break;
                 case Architecture.X64:
                 case Architecture.Arm64:
                     {
+                        UIntPtr sizeFrom64 = new UIntPtr(ulong.MaxValue);
                         ulong to64 = instance.FromSizeT(sizeFrom64);
                         Assert.AreEqual(sizeFrom64.ToUInt64(), to64);
-
-                        success = true;
                     }
                     break;
             }
-
-            Assert.IsTrue(success);
         }
         #endregion
 

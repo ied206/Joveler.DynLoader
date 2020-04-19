@@ -126,6 +126,10 @@ namespace Joveler.DynLoader
             string libDir = Path.GetDirectoryName(libPath);
             bool setLibSearchDir = libDir != null && Directory.Exists(libDir);
 
+            // Use .NET Core's NativeLibrary when available
+#if NETCOREAPP3_1
+            LoadNetNativeModule(libPath);
+#else
 #if !NET451
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
@@ -206,6 +210,7 @@ namespace Joveler.DynLoader
                 throw new PlatformNotSupportedException();
             }
 #endif
+#endif
 
             // Load functions
             try
@@ -244,29 +249,43 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region (protected) LoadModule
+        #region (private) LoadModule
+        /// <summary>
+        /// Handle of the native library.
+        /// </summary>
         private SafeHandle _hModule;
         private bool Loaded => _hModule != null && !_hModule.IsInvalid;
 
-        protected void LoadWindowsModule(string dllPath)
+        private void LoadWindowsModule(string dllPath)
         {
             _hModule = new WinSafeLibHandle(dllPath);
             if (_hModule.IsInvalid)
                 throw new ArgumentException($"Unable to load [{dllPath}]", new Win32Exception());
         }
 
-        protected void LoadLinuxModule(string soPath)
+        private void LoadLinuxModule(string soPath)
         {
             _hModule = new LinuxSafeLibHandle(soPath);
             if (_hModule.IsInvalid)
                 throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Linux.DLError()}");
         }
 
-        protected void LoadMacModule(string soPath)
+        private void LoadMacModule(string soPath)
         {
             _hModule = new MacSafeLibHandle(soPath);
             if (_hModule.IsInvalid)
                 throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Mac.DLError()}");
+        }
+
+        /// <summary>
+        /// Available after .NET Core 3.x
+        /// </summary>
+        /// <param name="libPath"></param>
+        private void LoadNetNativeModule(string libPath)
+        {
+            _hModule = new NetSafeLibHandle(libPath);
+            if (_hModule.IsInvalid)
+                throw new ArgumentException($"Unable to load [{libPath}]");
         }
         #endregion
 
@@ -280,6 +299,9 @@ namespace Joveler.DynLoader
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
             IntPtr funcPtr;
+#if NETCOREAPP3_1
+            funcPtr = NativeLibrary.GetExport(_hModule.DangerousGetHandle(), funcSymbol);
+#else
 #if !NET451
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
@@ -306,6 +328,7 @@ namespace Joveler.DynLoader
                 throw new PlatformNotSupportedException();
             }
 #endif
+#endif
 
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
         }
@@ -321,9 +344,9 @@ namespace Joveler.DynLoader
             string funcSymbol = typeof(T).Name;
             return GetFuncPtr<T>(funcSymbol);
         }
-        #endregion
+#endregion
 
-        #region (abstract) DefaultLibFileName
+#region (abstract) DefaultLibFileName
         /// <summary>
         /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
         /// </summary>
@@ -332,9 +355,9 @@ namespace Joveler.DynLoader
         /// e.g. zlib is often included in Linux and macOS, but not in Windows.
         /// </remarks>
         protected abstract string DefaultLibFileName { get; }
-        #endregion
+#endregion
 
-        #region (abstract) LoadFunctions, ResetFunctions
+#region (abstract) LoadFunctions, ResetFunctions
         /// <summary>
         /// Load native functions with a GetFuncPtr. Called in the constructors.
         /// </summary>
@@ -343,9 +366,9 @@ namespace Joveler.DynLoader
         /// Clear pointer of native functions. Called in Dispose(bool).
         /// </summary>
         protected abstract void ResetFunctions();
-        #endregion
+#endregion
 
-        #region (public) Platform Information (Data Model, size_t, Unicode Encoding)
+#region (public) Platform Information (Data Model, size_t, Unicode Encoding)
         /// <summary>
         /// Data model of the platform.
         /// </summary>
@@ -408,25 +431,14 @@ namespace Joveler.DynLoader
         }
 
         /// <summary>
-        /// Safely convert <see cref="UIntPtr"/> (size_t) to <see cref="ulong"/> (uint64_t).
-        /// Throws an <see cref="PlatformNotSupportedException"/> if the value exceeds platform's address space.
+        /// Convert <see cref="UIntPtr"/> (size_t) to <see cref="ulong"/> (uint64_t).
+        /// Exists as a pair with ToSizeT(ulong size). Same as calling UIntPtr.ToUInt64() directly.
         /// </summary>
         /// <param name="size">To-be-converted value as <see cref="UIntPtr"/> (size_t).</param>
         /// <returns>Converted value as <see cref="ulong"/> (uint64_t).</returns>
-        /// <exception cref="PlatformNotSupportedException">
-        /// The value of <paramref name="size"/> is larger than <see cref="uint.MaxValue"/> in 32bit platform.
-        /// </exception>
         public ulong FromSizeT(UIntPtr size)
         {
-            ulong dest = size.ToUInt64();
-            switch (PlatformBitness)
-            {
-                case PlatformBitness.Bit32:
-                    if (uint.MaxValue < dest)
-                        throw new PlatformNotSupportedException($"size_t [0x{size:X}] is larger than 32bit address space.");
-                    break;
-            }
-            return dest;
+            return size.ToUInt64();
         }
 
         /// <summary>
@@ -491,6 +503,6 @@ namespace Joveler.DynLoader
                     return Marshal.StringToCoTaskMemAnsi(str);
             }
         }
-        #endregion
+#endregion
     }
 }
