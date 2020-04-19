@@ -273,12 +273,16 @@ namespace Joveler.DynLoader
             _hModule = new WinSafeLibHandle(dllPath);
             if (_hModule.IsInvalid)
             {
+                // Sample message of .NET Core 3.1's NativeLoader:
+                // Unable to load DLL 'x64\zlibwapi.dll' or one of its dependencies: The specified module could not be found. (0x8007007E).
+                // Unable to load DLL 'ᄒᆞᆫ글ḀḘ韓國Ghost.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)
+                string exceptMsg = $"Unable to load DLL '{dllPath}' or one of its dependencies";
                 int errorCode = Marshal.GetLastWin32Error();
-                string errorMsg = NativeMethods.Win32.GetLastMsg(errorCode);
-                if (errorMsg == null)
-                    throw new DllNotFoundException($"Unable to load DLL '{dllPath}' or one of its dependencies: (0x{errorCode:X8})"); 
+                string errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
+                if (string.IsNullOrWhiteSpace(errorMsg))
+                    throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})"); 
                 else
-                    throw new DllNotFoundException($"Unable to load DLL '{dllPath}' or one of its dependencies: {errorMsg}. (0x{errorCode:X8})");
+                    throw new DllNotFoundException($"{exceptMsg}: {errorMsg} (0x{errorCode:X8})");
             }
         }
 
@@ -286,14 +290,32 @@ namespace Joveler.DynLoader
         {
             _hModule = new LinuxSafeLibHandle(soPath);
             if (_hModule.IsInvalid)
-                throw new DllNotFoundException($"Unable to load library '{soPath}' or one of its dependencies: {NativeMethods.Linux.DLError()}");
+            {
+                // Sample message of .NET Core 3.1's NativeLoader:
+                // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.so' or one of its dependencies. In order to help diagnose loading problems, consider setting the LD_DEBUG environment variable: ᄒᆞᆫ글ḀḘ韓國Ghost.so: cannot open shared object file: No such file or directory
+                string exceptMsg = $"Unable to load shared library '{soPath}' or one of its dependencies";
+                string errorMsg = NativeMethods.Linux.DLError();
+                if (string.IsNullOrWhiteSpace(errorMsg))
+                    throw new DllNotFoundException($"{exceptMsg}.");
+                else
+                    throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
+            }
         }
 
         private void LoadMacModule(string soPath)
         {
             _hModule = new MacSafeLibHandle(soPath);
             if (_hModule.IsInvalid)
-                throw new DllNotFoundException($"Unable to load library '{soPath}' or one of its dependencies: {NativeMethods.Mac.DLError()}");
+            {
+                // Sample message of .NET Core 3.1's NativeLoader:
+                // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.dylib' or one of its dependencies. In order to help diagnose loading problems, consider setting the DYLD_PRINT_LIBRARIES environment variable: dlopen(ᄒᆞᆫ글ḀḘ韓國Ghost.dylib, 1): image not found
+                string exceptMsg = $"Unable to load shared library '{soPath}' or one of its dependencies";
+                string errorMsg = NativeMethods.Mac.DLError();
+                if (string.IsNullOrWhiteSpace(errorMsg))
+                    throw new DllNotFoundException($"{exceptMsg}.");
+                else
+                    throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
+            }
         }
 #endif
 
@@ -329,6 +351,9 @@ namespace Joveler.DynLoader
 #endif
             {
                 funcPtr = NativeMethods.Win32.GetProcAddress(_hModule, funcSymbol);
+
+                // Sample message of .NET Core 3.1's NativeLoader:
+                // Unable to find an entry point named 'not_exist' in DLL.
                 if (funcPtr == IntPtr.Zero)
                     throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in DLL.", new Win32Exception());
             }
@@ -336,14 +361,34 @@ namespace Joveler.DynLoader
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
+
                 if (funcPtr == IntPtr.Zero)
-                    throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in library, {NativeMethods.Linux.DLError()}.");
+                {
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to find an entry point named 'not_exist' in shared library.
+                    string exceptMsg = $"Unable to find an entry point named '{funcSymbol}' in shared library";
+                    string errorMsg = NativeMethods.Linux.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new EntryPointNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new EntryPointNotFoundException($"{exceptMsg}: {errorMsg}");
+
+                }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 funcPtr = NativeMethods.Mac.DLSym(_hModule, funcSymbol);
                 if (funcPtr == IntPtr.Zero)
-                    throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in library, {NativeMethods.Mac.DLError()}.");
+                {
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to find an entry point named 'not_exist' in shared library.
+                    string exceptMsg = $"Unable to find an entry point named '{funcSymbol}' in shared library";
+                    string errorMsg = NativeMethods.Mac.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new EntryPointNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new EntryPointNotFoundException($"{exceptMsg}: {errorMsg}");
+                }
             }
             else
             {

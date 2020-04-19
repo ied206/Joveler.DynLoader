@@ -83,7 +83,7 @@ namespace Joveler.DynLoader
                 uint nSize,
                 IntPtr arguments); // va_list
 
-            internal static string GetLastMsg(int errorCode)
+            internal static string GetLastErrorMsg(int errorCode)
             {
                 uint flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
                 uint langId = MakeLangId(LANG_NEUTRAL, SUBLANG_DEFAULT);
@@ -128,9 +128,17 @@ namespace Joveler.DynLoader
             [DllImport(Library, EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int DLClose(IntPtr handle);
 
-            internal static string DLError() => Marshal.PtrToStringAnsi(DLErrorPtr());
             [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
+            internal static string DLError()
+            {
+                IntPtr ptr = DLErrorPtr();
+                if (ptr == IntPtr.Zero)
+                    return null;
+
+                string str = Marshal.PtrToStringAnsi(DLErrorPtr());
+                return str.Trim();
+            }
 
             [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
             internal static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
@@ -150,9 +158,17 @@ namespace Joveler.DynLoader
             [DllImport(Library, EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int DLClose(IntPtr handle);
 
-            internal static string DLError() => Marshal.PtrToStringAnsi(DLErrorPtr());
             [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
+            internal static string DLError()
+            {
+                IntPtr ptr = DLErrorPtr();
+                if (ptr == IntPtr.Zero)
+                    return null;
+
+                string str = Marshal.PtrToStringAnsi(DLErrorPtr());
+                return str.Trim();
+            }
 
             [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
             internal static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
