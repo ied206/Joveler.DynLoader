@@ -136,7 +136,7 @@ namespace Joveler.DynLoader
                 if (ptr == IntPtr.Zero)
                     return null;
 
-                string str = Marshal.PtrToStringAnsi(DLErrorPtr());
+                string str = Marshal.PtrToStringAnsi(ptr);
                 return str.Trim();
             }
 
@@ -166,7 +166,7 @@ namespace Joveler.DynLoader
                 if (ptr == IntPtr.Zero)
                     return null;
 
-                string str = Marshal.PtrToStringAnsi(DLErrorPtr());
+                string str = Marshal.PtrToStringAnsi(ptr);
                 return str.Trim();
             }
 
