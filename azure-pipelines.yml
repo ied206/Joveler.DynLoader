@@ -25,12 +25,11 @@ steps:
 - task: UseDotNet@2
 - task: DotNetCoreCLI@2
   inputs:
+    version: 3.1.201
     command: 'restore'
     projects: '**/*.csproj'
     feedsToUse: 'select'
   displayName: 'Install .NET Core SDK 3.1'
-  inputs:
-    version: 3.1.201
 - script: dotnet build --configuration $(buildConfiguration)
   displayName: 'Build Projects'
 - task: DotNetCoreCLI@2
