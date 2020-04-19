@@ -69,6 +69,49 @@ namespace Joveler.DynLoader
                 while (bufferLen < ret);
                 return ret == 0 ? null : buffer.ToString();
             }
+
+            const uint FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100;
+            const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
+            const uint FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
+            [DllImport("kernel32.dll", SetLastError = true)]
+            private static extern uint FormatMessageW(
+                uint dwFlags,
+                IntPtr lpSource,
+                uint dwMessageId,
+                uint dwLanguageId,
+                out IntPtr lpBuffer,
+                uint nSize,
+                IntPtr arguments); // va_list
+
+            internal static string GetLastMsg(int errorCode)
+            {
+                uint flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
+                uint langId = MakeLangId(LANG_NEUTRAL, SUBLANG_DEFAULT);
+                uint ret = FormatMessageW(flags, IntPtr.Zero, (uint)errorCode, langId, out IntPtr buffer, 0, IntPtr.Zero);
+                if (ret == 0)
+                    return null;
+
+                string errorMsg = Marshal.PtrToStringUni(buffer);
+                Marshal.FreeHGlobal(buffer);
+
+                return errorMsg.Trim();
+            }
+
+            const ushort LANG_NEUTRAL = 0x00;
+            const ushort LANG_ENGLISH = 0x09;
+            const ushort SUBLANG_NEUTRAL = 0x00;
+            const ushort SUBLANG_DEFAULT = 0x01;
+            const ushort SUBLANG_SYS_DEFAULT = 0x02;
+            const ushort SUBLANG_ENGLISH_US = 0x01; // English (USA)
+            internal static uint MakeLangId(ushort priLangId, ushort subLangId)
+            {
+                // LANG_NEUTRAL + SUBLANG_NEUTRAL = Language neutral
+                // LANG_NEUTRAL + SUBLANG_DEFAULT = User default language
+                // LANG_NEUTRAL + SUBLANG_SYS_DEFAULT = System default language
+
+                // #define MAKELANGID ((((USHORT)(s)) << 10) | (USHORT)(p))
+                return (ushort)((subLangId << 10) | priLangId);
+            }
         }
         #endregion
 

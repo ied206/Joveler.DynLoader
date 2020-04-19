@@ -28,15 +28,12 @@ using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader
 {
+#if NETCOREAPP3_1
     internal class NetSafeLibHandle : SafeHandle
     {
         public NetSafeLibHandle(string libPath) : base(IntPtr.Zero, true)
         {
-#if NETCOREAPP3_1
             handle = NativeLibrary.Load(libPath);
-#else
-            throw new PlatformNotSupportedException("NativeLoader class is available on .NET Core 3.0 or later.");
-#endif
         }
 
         /// <inheritdocs />
@@ -45,12 +42,9 @@ namespace Joveler.DynLoader
         /// <inheritdocs />
         protected override bool ReleaseHandle()
         {
-#if NETCOREAPP3_1
             NativeLibrary.Free(handle);
             return true;
-#else
-            return false;
-#endif
         }
     }
+#endif
 }

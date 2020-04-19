@@ -256,40 +256,62 @@ namespace Joveler.DynLoader
         private SafeHandle _hModule;
         private bool Loaded => _hModule != null && !_hModule.IsInvalid;
 
-        private void LoadWindowsModule(string dllPath)
-        {
-            _hModule = new WinSafeLibHandle(dllPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{dllPath}]", new Win32Exception());
-        }
-
-        private void LoadLinuxModule(string soPath)
-        {
-            _hModule = new LinuxSafeLibHandle(soPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Linux.DLError()}");
-        }
-
-        private void LoadMacModule(string soPath)
-        {
-            _hModule = new MacSafeLibHandle(soPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Mac.DLError()}");
-        }
-
+#if NETCOREAPP3_1
         /// <summary>
         /// Available after .NET Core 3.x
         /// </summary>
         /// <param name="libPath"></param>
         private void LoadNetNativeModule(string libPath)
         {
+            // NET's NativeLibrary will throw DllNotFoundException by itself.
+            // No need to check _hModule.IsInvalid here.
             _hModule = new NetSafeLibHandle(libPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{libPath}]");
         }
+#else
+        private void LoadWindowsModule(string dllPath)
+        {
+            _hModule = new WinSafeLibHandle(dllPath);
+            if (_hModule.IsInvalid)
+            {
+                int errorCode = Marshal.GetLastWin32Error();
+                string errorMsg = NativeMethods.Win32.GetLastMsg(errorCode);
+                if (errorMsg == null)
+                    throw new DllNotFoundException($"Unable to load DLL '{dllPath}' or one of its dependencies: (0x{errorCode:X8})"); 
+                else
+                    throw new DllNotFoundException($"Unable to load DLL '{dllPath}' or one of its dependencies: {errorMsg}. (0x{errorCode:X8})");
+            }
+        }
+
+        private void LoadLinuxModule(string soPath)
+        {
+            _hModule = new LinuxSafeLibHandle(soPath);
+            if (_hModule.IsInvalid)
+                throw new DllNotFoundException($"Unable to load library '{soPath}' or one of its dependencies: {NativeMethods.Linux.DLError()}");
+        }
+
+        private void LoadMacModule(string soPath)
+        {
+            _hModule = new MacSafeLibHandle(soPath);
+            if (_hModule.IsInvalid)
+                throw new DllNotFoundException($"Unable to load library '{soPath}' or one of its dependencies: {NativeMethods.Mac.DLError()}");
+        }
+#endif
+
         #endregion
 
         #region (protected) GetFuncPtr
+        /// <summary>
+        /// Get a delegate of a native function from a library.
+        /// The method will use name of the given delegate T as function symbol.
+        /// </summary>
+        /// <typeparam name="T">Delegate type of a native function.</typeparam>
+        /// <returns>Delegate instance of a native function.</returns>
+        protected T GetFuncPtr<T>() where T : Delegate
+        {
+            string funcSymbol = typeof(T).Name;
+            return GetFuncPtr<T>(funcSymbol);
+        }
+
         /// <summary>
         /// Get a delegate of a native function from a library.
         /// </summary>
@@ -308,20 +330,20 @@ namespace Joveler.DynLoader
             {
                 funcPtr = NativeMethods.Win32.GetProcAddress(_hModule, funcSymbol);
                 if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}]", new Win32Exception());
+                    throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in DLL.", new Win32Exception());
             }
 #if !NET451
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
                 if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Linux.DLError()}");
+                    throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in library, {NativeMethods.Linux.DLError()}.");
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 funcPtr = NativeMethods.Mac.DLSym(_hModule, funcSymbol);
                 if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Mac.DLError()}");
+                    throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in library, {NativeMethods.Mac.DLError()}.");
             }
             else
             {
@@ -331,22 +353,10 @@ namespace Joveler.DynLoader
 #endif
 
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
-        }
+        }        
+        #endregion
 
-        /// <summary>
-        /// Get a delegate of a native function from a library.
-        /// The method will use name of the given delegate as function symbol.
-        /// </summary>
-        /// <typeparam name="T">Delegate type of a native function.</typeparam>
-        /// <returns>Delegate instance of a native function.</returns>
-        protected T GetFuncPtr<T>() where T : Delegate
-        {
-            string funcSymbol = typeof(T).Name;
-            return GetFuncPtr<T>(funcSymbol);
-        }
-#endregion
-
-#region (abstract) DefaultLibFileName
+        #region (abstract) DefaultLibFileName
         /// <summary>
         /// Default filename of the native libary to use. Override only if the target platform ships with the native library.
         /// </summary>
@@ -355,9 +365,9 @@ namespace Joveler.DynLoader
         /// e.g. zlib is often included in Linux and macOS, but not in Windows.
         /// </remarks>
         protected abstract string DefaultLibFileName { get; }
-#endregion
+        #endregion
 
-#region (abstract) LoadFunctions, ResetFunctions
+        #region (abstract) LoadFunctions, ResetFunctions
         /// <summary>
         /// Load native functions with a GetFuncPtr. Called in the constructors.
         /// </summary>
@@ -366,9 +376,9 @@ namespace Joveler.DynLoader
         /// Clear pointer of native functions. Called in Dispose(bool).
         /// </summary>
         protected abstract void ResetFunctions();
-#endregion
+        #endregion
 
-#region (public) Platform Information (Data Model, size_t, Unicode Encoding)
+        #region (public) Platform Information (Data Model, size_t, Unicode Encoding)
         /// <summary>
         /// Data model of the platform.
         /// </summary>
@@ -407,38 +417,6 @@ namespace Joveler.DynLoader
                         return new UTF8Encoding(false);
                 }
             }
-        }
-
-        /// <summary>
-        /// Safely convert <see cref="ulong"/> (uint64_t) to <see cref="UIntPtr"/> (size_t).
-        /// Throws an <see cref="PlatformNotSupportedException"/> if the value exceeds platform's address space.
-        /// </summary>
-        /// <param name="size">To-be-converted value as <see cref="ulong"/> (uint64_t).</param>
-        /// <returns>Converted value as <see cref="UIntPtr"/> (size_t).</returns>
-        /// <exception cref="PlatformNotSupportedException">
-        /// The value of <paramref name="size"/> is larger than <see cref="uint.MaxValue"/> in 32bit platform.
-        /// </exception>
-        public UIntPtr ToSizeT(ulong size)
-        {
-            switch (PlatformBitness)
-            {
-                case PlatformBitness.Bit32:
-                    if (uint.MaxValue < size)
-                        throw new PlatformNotSupportedException($"size_t [0x{size:X}] is larger than 32bit address space.");
-                    break;
-            }
-            return new UIntPtr(size);
-        }
-
-        /// <summary>
-        /// Convert <see cref="UIntPtr"/> (size_t) to <see cref="ulong"/> (uint64_t).
-        /// Exists as a pair with ToSizeT(ulong size). Same as calling UIntPtr.ToUInt64() directly.
-        /// </summary>
-        /// <param name="size">To-be-converted value as <see cref="UIntPtr"/> (size_t).</param>
-        /// <returns>Converted value as <see cref="ulong"/> (uint64_t).</returns>
-        public ulong FromSizeT(UIntPtr size)
-        {
-            return size.ToUInt64();
         }
 
         /// <summary>
@@ -503,6 +481,6 @@ namespace Joveler.DynLoader
                     return Marshal.StringToCoTaskMemAnsi(str);
             }
         }
-#endregion
+        #endregion
     }
 }

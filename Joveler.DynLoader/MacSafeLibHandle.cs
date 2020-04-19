@@ -28,6 +28,7 @@ using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader
 {
+#if !NETCOREAPP3_1
     internal class MacSafeLibHandle : SafeHandle
     {
         public MacSafeLibHandle(string libPath) : base(IntPtr.Zero, true)
@@ -45,4 +46,5 @@ namespace Joveler.DynLoader
             return ret == 0;
         }
     }
+#endif
 }
