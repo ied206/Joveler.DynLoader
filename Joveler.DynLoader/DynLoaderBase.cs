@@ -57,7 +57,7 @@ namespace Joveler.DynLoader
             }
 
             // Retreive platform convention
-#if NET451
+#if NETFRAMEWORK
             UnicodeConvention = UnicodeConvention.Utf16;
             PlatformLongSize = PlatformLongSize.Long32;
             if (Environment.Is64BitProcess)
@@ -132,10 +132,21 @@ namespace Joveler.DynLoader
 #if NETCOREAPP3_1
             LoadNetNativeModule(libPath);
 #else
-#if !NET451
+#if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
             {
+                if (setLibSearchDir)
+                {
+                    string libFullPath = Path.GetFullPath(libPath);
+                    LoadWindowsModule(libFullPath);
+                }
+                else
+                {
+                    LoadWindowsModule(libPath);
+                }
+
+                /*
                 if (setLibSearchDir)
                 {
                     // Library search path guard with try ~ catch
@@ -155,8 +166,9 @@ namespace Joveler.DynLoader
                 {
                     LoadWindowsModule(libPath);
                 }
+                */
             }
-#if !NET451
+#if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 // Prepare chained library files.
@@ -272,7 +284,20 @@ namespace Joveler.DynLoader
 #else
         private void LoadWindowsModule(string dllPath)
         {
-            _hModule = new WinSafeLibHandle(dllPath);
+            // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order
+            string libDir = Path.GetDirectoryName(dllPath);
+            if (libDir != null && Directory.Exists(libDir))
+            {
+                // Case 1) dllPath is an relative path and contains one or more directory path. Ex) x64\libmagic.dll
+                // Case 2) dllPath is an absolute path. Ex) D:\DynLoader\native.dll
+                string fullDllPath = Path.GetFullPath(dllPath);
+                _hModule = new WinSafeLibHandle(fullDllPath);
+            }
+            else
+            { // Case) dllPath does not contain any directory path. Ex) kernel32.dll
+                _hModule = new WinSafeLibHandle(dllPath);
+            }
+
             if (_hModule.IsInvalid)
             {
                 // Sample message of .NET Core 3.1's NativeLoader:
@@ -282,12 +307,13 @@ namespace Joveler.DynLoader
                 int errorCode = Marshal.GetLastWin32Error();
                 string errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
                 if (string.IsNullOrWhiteSpace(errorMsg))
-                    throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})"); 
+                    throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})");
                 else
                     throw new DllNotFoundException($"{exceptMsg}: {errorMsg} (0x{errorCode:X8})");
             }
         }
 
+#if !NETFRAMEWORK
         private void LoadLinuxModule(string soPath)
         {
             _hModule = new LinuxSafeLibHandle(soPath);
@@ -320,6 +346,7 @@ namespace Joveler.DynLoader
             }
         }
 #endif
+#endif
 
         #endregion
 
@@ -348,7 +375,7 @@ namespace Joveler.DynLoader
 #if NETCOREAPP3_1
             funcPtr = NativeLibrary.GetExport(_hModule.DangerousGetHandle(), funcSymbol);
 #else
-#if !NET451
+#if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
             {
@@ -359,7 +386,7 @@ namespace Joveler.DynLoader
                 if (funcPtr == IntPtr.Zero)
                     throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in DLL.", new Win32Exception());
             }
-#if !NET451
+#if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
@@ -400,7 +427,7 @@ namespace Joveler.DynLoader
 #endif
 
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
-        }        
+        }
         #endregion
 
         #region (abstract) DefaultLibFileName

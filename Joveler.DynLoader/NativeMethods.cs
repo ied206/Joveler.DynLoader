@@ -38,7 +38,12 @@ namespace Joveler.DynLoader
         {
             [DllImport("kernel32.dll", SetLastError = true)]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            internal static extern IntPtr LoadLibraryW([MarshalAs(UnmanagedType.LPWStr)] string lpFileName);
+            public static extern IntPtr LoadLibraryW([MarshalAs(UnmanagedType.LPWStr)] string lpLibFileName);
+
+            public const uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008;
+            [DllImport("kernel32.dll", SetLastError = true)]
+            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+            public static extern IntPtr LoadLibraryExW([MarshalAs(UnmanagedType.LPWStr)] string lpLibFileName, IntPtr hFile, uint dwFlags);
             /// <summary>
             /// 
             /// </summary>
@@ -47,20 +52,21 @@ namespace Joveler.DynLoader
             /// <returns></returns>
             [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            internal static extern IntPtr GetProcAddress(SafeHandle hModule, [MarshalAs(UnmanagedType.LPStr)] string procName);
+            public static extern IntPtr GetProcAddress(SafeHandle hModule, [MarshalAs(UnmanagedType.LPStr)] string procName);
 
             [DllImport("kernel32.dll")]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            internal static extern int FreeLibrary(IntPtr hModule);
+            public static extern int FreeLibrary(IntPtr hModule);
 
+            /*
             [DllImport("kernel32.dll", SetLastError = true)]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            internal static extern int SetDllDirectoryW([MarshalAs(UnmanagedType.LPWStr)] string lpPathName);
+            public static extern int SetDllDirectoryW([MarshalAs(UnmanagedType.LPWStr)] string lpPathName);
             [DllImport("kernel32.dll", SetLastError = true)]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             private static extern int GetDllDirectoryW(int nBufferLength, StringBuilder lpBuffer);
 
-            internal static string GetDllDirectory()
+            public static string GetDllDirectory()
             {
                 StringBuilder buffer = new StringBuilder(260);
                 int bufferLen = buffer.Capacity;
@@ -74,6 +80,7 @@ namespace Joveler.DynLoader
                 while (bufferLen < ret);
                 return ret == 0 ? null : buffer.ToString();
             }
+            */
 
             const uint FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100;
             const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
@@ -89,7 +96,7 @@ namespace Joveler.DynLoader
                 uint nSize,
                 IntPtr arguments); // va_list
 
-            internal static string GetLastErrorMsg(int errorCode)
+            public static string GetLastErrorMsg(int errorCode)
             {
                 uint flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
                 uint langId = MakeLangId(LANG_NEUTRAL, SUBLANG_DEFAULT);
@@ -109,7 +116,7 @@ namespace Joveler.DynLoader
             const ushort SUBLANG_DEFAULT = 0x01;
             const ushort SUBLANG_SYS_DEFAULT = 0x02;
             const ushort SUBLANG_ENGLISH_US = 0x01; // English (USA)
-            internal static uint MakeLangId(ushort priLangId, ushort subLangId)
+            public static uint MakeLangId(ushort priLangId, ushort subLangId)
             {
                 // LANG_NEUTRAL + SUBLANG_NEUTRAL = Language neutral
                 // LANG_NEUTRAL + SUBLANG_DEFAULT = User default language
