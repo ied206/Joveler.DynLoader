@@ -24,7 +24,9 @@
 */
 
 using System;
-using System.ComponentModel;
+#if !NETCOREAPP3_1
+using System.ComponentModel; // For Win32Exception
+#endif
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -55,7 +57,7 @@ namespace Joveler.DynLoader
             }
 
             // Retreive platform convention
-#if NET451
+#if NETFRAMEWORK
             UnicodeConvention = UnicodeConvention.Utf16;
             PlatformLongSize = PlatformLongSize.Long32;
             if (Environment.Is64BitProcess)
@@ -119,92 +121,80 @@ namespace Joveler.DynLoader
             }
 #endif
 
-            // Check if we need to set proper directory to search. 
-            // If we don't, LoadLibrary can fail when loading chained dll files.
-            // e.g. Loading x64/A.dll requires implicit load of x64/B.dll -> SetDllDirectory("x64") is required.
-            // When the libPath is just the filename itself (e.g. liblzma.dll), this step is not necessary.
-            string libDir = Path.GetDirectoryName(libPath);
-            bool setLibSearchDir = libDir != null && Directory.Exists(libDir);
-
-#if !NET451
+            // Use .NET Core's NativeLibrary when available
+#if NETCOREAPP3_1
+            // NET's NativeLibrary will throw DllNotFoundException by itself.
+            // No need to check _hModule.IsInvalid here.
+            _hModule = new NetSafeLibHandle(libPath);
+#else
+#if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
             {
-                if (setLibSearchDir)
+                // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order
+                string libDir = Path.GetDirectoryName(libPath);
+                if (libDir != null && Directory.Exists(libDir))
                 {
-                    // Library search path guard with try ~ catch
-                    string bakDllDir = NativeMethods.Win32.GetDllDirectory();
-                    try
-                    {
-                        NativeMethods.Win32.SetDllDirectoryW(libDir);
-                        LoadWindowsModule(Path.GetFullPath(libPath));
-                    }
-                    finally
-                    {
-                        // Restore dll search directory to original state
-                        NativeMethods.Win32.SetDllDirectoryW(bakDllDir);
-                    }
+                    // Case 1) dllPath is an relative path and contains one or more directory path. Ex) x64\libmagic.dll
+                    // Case 2) dllPath is an absolute path. Ex) D:\DynLoader\native.dll
+                    string fullDllPath = Path.GetFullPath(libPath);
+                    _hModule = new WinSafeLibHandle(fullDllPath);
                 }
                 else
+                { // Case) dllPath does not contain any directory path. Ex) kernel32.dll
+                    _hModule = new WinSafeLibHandle(libPath);
+                }
+
+                if (_hModule.IsInvalid)
                 {
-                    LoadWindowsModule(libPath);
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to load DLL 'x64\zlibwapi.dll' or one of its dependencies: The specified module could not be found. (0x8007007E).
+                    // Unable to load DLL 'ᄒᆞᆫ글ḀḘ韓國Ghost.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)
+                    string exceptMsg = $"Unable to load DLL '{libPath}' or one of its dependencies";
+                    int errorCode = Marshal.GetLastWin32Error();
+                    string errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})");
+                    else
+                        throw new DllNotFoundException($"{exceptMsg}: {errorMsg} (0x{errorCode:X8})");
                 }
             }
-#if !NET451
+#if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                // Prepare chained library files.
-                const string envVar = "LD_LIBRARY_PATH";
-                if (setLibSearchDir && envVar != null)
+                _hModule = new LinuxSafeLibHandle(libPath);
+                if (_hModule.IsInvalid)
                 {
-                    // Library search path guard with try ~ catch
-                    string bakLibSerachPath = Environment.GetEnvironmentVariable(envVar);
-                    try
-                    {
-                        string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
-                        Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
-
-                        LoadLinuxModule(libPath);
-                    }
-                    finally
-                    {
-                        Environment.SetEnvironmentVariable(envVar, bakLibSerachPath);
-                    }
-                }
-                else
-                {
-                    LoadLinuxModule(libPath);
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.so' or one of its dependencies. In order to help diagnose loading problems, consider setting the LD_DEBUG environment variable: ᄒᆞᆫ글ḀḘ韓國Ghost.so: cannot open shared object file: No such file or directory
+                    string exceptMsg = $"Unable to load shared library '{libPath}' or one of its dependencies";
+                    string errorMsg = NativeMethods.Linux.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new DllNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
                 }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                // Prepare chained library files.
-                const string envVar = "DYLD_LIBRARY_PATH";
-                if (setLibSearchDir && envVar != null)
+                _hModule = new MacSafeLibHandle(libPath);
+                if (_hModule.IsInvalid)
                 {
-                    // Library search path guard with try ~ catch
-                    string bakLibSerachPath = Environment.GetEnvironmentVariable(envVar);
-                    try
-                    {
-                        string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
-                        Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
-
-                        LoadMacModule(libPath);
-                    }
-                    finally
-                    {
-                        Environment.SetEnvironmentVariable(envVar, bakLibSerachPath);
-                    }
-                }
-                else
-                {
-                    LoadMacModule(libPath);
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.dylib' or one of its dependencies. In order to help diagnose loading problems, consider setting the DYLD_PRINT_LIBRARIES environment variable: dlopen(ᄒᆞᆫ글ḀḘ韓國Ghost.dylib, 1): image not found
+                    string exceptMsg = $"Unable to load shared library '{libPath}' or one of its dependencies";
+                    string errorMsg = NativeMethods.Mac.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new DllNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
                 }
             }
             else
             {
                 throw new PlatformNotSupportedException();
             }
+#endif
 #endif
 
             // Load functions
@@ -244,33 +234,27 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region (protected) LoadModule
+        #region (private) SafeLibModule
+        /// <summary>
+        /// Handle of the native library.
+        /// </summary>
         private SafeHandle _hModule;
         private bool Loaded => _hModule != null && !_hModule.IsInvalid;
-
-        protected void LoadWindowsModule(string dllPath)
-        {
-            _hModule = new WinSafeLibHandle(dllPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{dllPath}]", new Win32Exception());
-        }
-
-        protected void LoadLinuxModule(string soPath)
-        {
-            _hModule = new LinuxSafeLibHandle(soPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Linux.DLError()}");
-        }
-
-        protected void LoadMacModule(string soPath)
-        {
-            _hModule = new MacSafeLibHandle(soPath);
-            if (_hModule.IsInvalid)
-                throw new ArgumentException($"Unable to load [{soPath}], {NativeMethods.Mac.DLError()}");
-        }
         #endregion
 
         #region (protected) GetFuncPtr
+        /// <summary>
+        /// Get a delegate of a native function from a library.
+        /// The method will use name of the given delegate T as function symbol.
+        /// </summary>
+        /// <typeparam name="T">Delegate type of a native function.</typeparam>
+        /// <returns>Delegate instance of a native function.</returns>
+        protected T GetFuncPtr<T>() where T : Delegate
+        {
+            string funcSymbol = typeof(T).Name;
+            return GetFuncPtr<T>(funcSymbol);
+        }
+
         /// <summary>
         /// Get a delegate of a native function from a library.
         /// </summary>
@@ -280,31 +264,58 @@ namespace Joveler.DynLoader
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
             IntPtr funcPtr;
-#if !NET451
+#if NETCOREAPP3_1
+            funcPtr = NativeLibrary.GetExport(_hModule.DangerousGetHandle(), funcSymbol);
+#else
+#if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
             {
                 funcPtr = NativeMethods.Win32.GetProcAddress(_hModule, funcSymbol);
+
+                // Sample message of .NET Core 3.1's NativeLoader:
+                // Unable to find an entry point named 'not_exist' in DLL.
                 if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}]", new Win32Exception());
+                    throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in DLL.", new Win32Exception());
             }
-#if !NET451
+#if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
+
                 if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Linux.DLError()}");
+                {
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to find an entry point named 'not_exist' in shared library.
+                    string exceptMsg = $"Unable to find an entry point named '{funcSymbol}' in shared library";
+                    string errorMsg = NativeMethods.Linux.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new EntryPointNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new EntryPointNotFoundException($"{exceptMsg}: {errorMsg}");
+
+                }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 funcPtr = NativeMethods.Mac.DLSym(_hModule, funcSymbol);
                 if (funcPtr == IntPtr.Zero)
-                    throw new InvalidOperationException($"Cannot import [{funcSymbol}], {NativeMethods.Mac.DLError()}");
+                {
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to find an entry point named 'not_exist' in shared library.
+                    string exceptMsg = $"Unable to find an entry point named '{funcSymbol}' in shared library";
+                    string errorMsg = NativeMethods.Mac.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new EntryPointNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new EntryPointNotFoundException($"{exceptMsg}: {errorMsg}");
+                }
             }
             else
             {
                 throw new PlatformNotSupportedException();
             }
+#endif
 #endif
 
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
@@ -372,49 +383,6 @@ namespace Joveler.DynLoader
                         return new UTF8Encoding(false);
                 }
             }
-        }
-
-        /// <summary>
-        /// Safely convert <see cref="ulong"/> (uint64_t) to <see cref="UIntPtr"/> (size_t).
-        /// Throws an <see cref="PlatformNotSupportedException"/> if the value exceeds platform's address space.
-        /// </summary>
-        /// <param name="size">To-be-converted value as <see cref="ulong"/> (uint64_t).</param>
-        /// <returns>Converted value as <see cref="UIntPtr"/> (size_t).</returns>
-        /// <exception cref="PlatformNotSupportedException">
-        /// The value of <paramref name="size"/> is larger than <see cref="uint.MaxValue"/> in 32bit platform.
-        /// </exception>
-        public UIntPtr ToSizeT(ulong size)
-        {
-            switch (PlatformBitness)
-            {
-                case PlatformBitness.Bit32:
-                    if (uint.MaxValue < size)
-                        throw new PlatformNotSupportedException($"size_t [0x{size:X}] is larger than 32bit address space.");
-                    break;
-            }
-            return new UIntPtr(size);
-        }
-
-        /// <summary>
-        /// Safely convert <see cref="UIntPtr"/> (size_t) to <see cref="ulong"/> (uint64_t).
-        /// Throws an <see cref="PlatformNotSupportedException"/> if the value exceeds platform's address space.
-        /// </summary>
-        /// <param name="size">To-be-converted value as <see cref="UIntPtr"/> (size_t).</param>
-        /// <returns>Converted value as <see cref="ulong"/> (uint64_t).</returns>
-        /// <exception cref="PlatformNotSupportedException">
-        /// The value of <paramref name="size"/> is larger than <see cref="uint.MaxValue"/> in 32bit platform.
-        /// </exception>
-        public ulong FromSizeT(UIntPtr size)
-        {
-            ulong dest = size.ToUInt64();
-            switch (PlatformBitness)
-            {
-                case PlatformBitness.Bit32:
-                    if (uint.MaxValue < dest)
-                        throw new PlatformNotSupportedException($"size_t [0x{size:X}] is larger than 32bit address space.");
-                    break;
-            }
-            return dest;
         }
 
         /// <summary>

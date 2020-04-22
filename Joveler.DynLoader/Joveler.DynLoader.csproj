@@ -1,22 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net451;netstandard2.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net451;netstandard2.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <PackageId>Joveler.DynLoader</PackageId>
     <Title>Joveler.DynLoader</Title>
-    <Version>1.3.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Hajin Jang</Authors>
     <Company>Joveler</Company>
-    <Description>Cross-platform native dynamic library loader for .Net.
+    <Description>Cross-platform native dynamic library loader for .NET.
 Provides advanced p/invoke functionality using LoadLibrary and libdl.
 Supports Windows, Linux, and macOS.</Description>
-    <Copyright>Copyright (C) 2019 Hajin Jang</Copyright>
+    <Copyright>Copyright (C) 2019-2020 Hajin Jang</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Add size_t helper methods.
-- Rename AutoStringToCoTaskMem() into StringToCoTaskMemAuto().</PackageReleaseNotes>
+    <PackageReleaseNotes>- Use NativeLoader on .NET Core 3.x build.
+- Better and safer recursive library loading.
+- Add simpler version of GetFuncPtr&lt;T&gt;.
+- Remove unnecessary redundant size_t helper methods.</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <ItemGroup>

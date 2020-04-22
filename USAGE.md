@@ -1,6 +1,6 @@
 # Usage
 
-`Joveler.DynLoader` is a cross-platform native dynamic library loader for .Net. It allows developers to create a wrapper of native C libraries easily.
+`Joveler.DynLoader` is a cross-platform native dynamic library loader for .NET. It allows developers to create a wrapper of native C libraries easily.
 
 The library provide two abstract class, [DynLoaderBase](#DynLoaderBase) and [LoadManagerBase](#LoadManagerBase).
 
@@ -25,9 +25,9 @@ The test project also has the showcase of per-platform delegate declarations. Re
 
 You need to provide a prototype of the native functions, similar to traditional [DllImport P/Invoke](https://docs.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke).
 
-First, translate a prototype of native function into a managed delegate. The delegate must be annotated with [UnmanagedFunctionPointerAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.unmanagedfunctionpointerattribute). The attribute has similar parameters to [DllImportAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.dllimportattribute).
+First, translate a prototype of native function into a managed delegate. The delegate must have [UnmanagedFunctionPointerAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.unmanagedfunctionpointerattribute). The attribute has similar parameters to [DllImportAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.dllimportattribute).
 
-You should declare a delegate type and a delegate instance as a pair per one native function. The delegate type represents the parameter and return types, while you can call the function by invoking the delegate instance.
+You should declare a delegate type and a delegate instance as a pair per one native function. The delegate type represents the parameter and returns types, while you can call the function by invoking the delegate instance.
 
 **Example**
 
@@ -45,6 +45,32 @@ public delegate IntPtr zlibVersion();
 private zlibVersion ZLibVersionPtr;
 public string ZLibVersion() => Marshal.PtrToStringAnsi(ZLibVersionPtr());
 ```
+
+### Constructors
+
+You have to implement your own constructors, using protected constructors of `DynLoaderBase`.
+
+```csharp
+/// <summary>
+/// Load a native dynamic library from a given path.
+/// </summary>
+/// <param name="libPath">A native library file to load.</param>
+protected DynLoaderBase(string libPath)
+/// <summary>
+/// Load a native dynamic library from a path of `DefaultLibFileName`.
+/// </summary>
+protected DynLoaderBase() : this(null)
+```
+
+The constructor with a path parameter loads that specific native library. The parameterless constructor tries to load the default native library from the base system. 
+
+On .NET Core 3.x, DynLoader depends on .NET's own [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) class to load a native library. On .NET Framework and .NET Standard build, DynLoader calls platform-native APIs to load dynamic libraries at runtime. DynLoader tries its best to ensure consistent behavior regardless of which .NET platform you are using.
+
+Under the hood, DynLoader calls [LoadLibraryEx](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) with `LOAD_WITH_ALTERED_SEARCH_PATH` flag on Windows, and [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) with `RTLD_NOW | RTLD_GLOBAL` on POSIX. [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) also use highly similar tactics.
+
+DynLoader follows the OS's library resolving order. On Windows, it follows [alternative library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order#alternate-search-order-for-desktop-applications). On POSIX, it follows the order explained on [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) manual.
+
+When it fails to load a native library, [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception?view=netcore-3.1) is thrown. 
 
 ### Methods and property to override
 
@@ -71,7 +97,9 @@ protected abstract void ResetFunctions();
 
 You must override `LoadFunctions()` with a code loading delegates of native functions. 
 
-Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function symbol name (`funcSymbol`) to get a C# delegate of a symbol. Assign return value as a delegate instance you previously declared. 
+Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function symbol name (`funcSymbol`) to get a C# delegate of a symbol. Assign return value as a delegate instance you previously declared. `GetFuncPtr<T>()` is a less slow but more convenient variant. It uses `Reflection` to get a real name of `T` at runtime.
+
+When `GetFuncPtr<T>()` and its overload fail to load a native function, [EntryPointNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.entrypointnotfoundexception?view=netcore-3.1) is thrown. 
 
 `LoadFunctions()` is called from the class constructor, so you do not need to call it yourself. You can invoke the delegate instances to call extern native functions after the class instance was created.
 
@@ -80,9 +108,11 @@ Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function 
 ```csharp
 protected override void LoadFunctions()
 {
+    // Invoke GetFuncPtr<T>(string funcSymbol);
     Adler32 = GetFuncPtr<adler32>(nameof(adler32));
     Crc32 = GetFuncPtr<crc32>(nameof(crc32));
-    ZLibVersionPtr = GetFuncPtr<zlibVersion>(nameof(zlibVersion));
+    // Invoke GetFuncPtr<T>();
+    ZLibVersionPtr = GetFuncPtr<zlibVersion>();
 }
 ```
 
@@ -113,26 +143,6 @@ protected override string DefaultLibFileName
     }
 }
 ```
-
-### Constructors
-
-You also have to implement your own constructors, using protected constructors of `DynLoaderBase`.
-
-```csharp
-/// <summary>
-/// Load a native dynamic library from a given path.
-/// </summary>
-/// <param name="libPath">A native library file to load.</param>
-protected DynLoaderBase(string libPath)
-/// <summary>
-/// Load a native dynamic library from a path of `DefaultLibFileName`.
-/// </summary>
-protected DynLoaderBase() : this(null)
-```
-
-The constructor with a path parameter loads that specific native library. The parameter is passed directly to the [LoadLibrary](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryw) and [dlsym](http://man7.org/linux/man-pages/man3/dlsym.3.html). 
-
-The parameterless constructor tries to load the default native library from the base system. The loader will load the default library following the [library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order) of the target platform.
 
 ### Platform Conventions
 
@@ -219,26 +229,6 @@ public PlatformUnicodeConvention PlatformUnicodeConvention { get; }
 public Encoding PlatformUnicodeEncoding { get; }
 
 /// <summary>
-/// Safely convert ulong (uint64_t) to UIntPtr (size_t).
-/// Throws an PlatformNotSupportedException if the value exceeds platform's address space.
-/// </summary>
-/// <param name="size">To-be-converted value as ulong (uint64_t).</param>
-/// <returns>Converted value as UIntPtr (size_t).</returns>
-/// <exception cref="PlatformNotSupportedException">
-/// The value of size is larger than uint.MaxValue in 32bit platform.
-/// </exception>
-public UIntPtr ToSizeT(ulong size);
-/// <summary>
-/// Safely convert UIntPtr (size_t) to ulong (uint64_t).
-/// Throws an PlatformNotSupportedException if the value exceeds platform's address space.
-/// </summary>
-/// <param name="size">To-be-converted value as UIntPtr (size_t).</param>
-/// <returns>Converted value as ulong (uint64_t).</returns>
-/// <exception cref="PlatformNotSupportedException">
-/// The value of size is larger than uint.MaxValue in 32bit platform.
-/// </exception>
-public ulong FromSizeT(UIntPtr size);
-/// <summary>
 /// Convert buffer pointer to string following platform's default encoding convention. Wrapper of Marshal.PtrToString*().
 /// </summary>
 /// <remarks>
@@ -285,9 +275,9 @@ In C language, the size of a data type may change per target platform. It is cal
 | `PlatformBitness`     | `Bit32` | `Bit64` |
 | Size of the `UIntPtr` | 32bit   | 64bit   |
 
-It is useful when to have to write different code per bitness, or handle marshalling of `size_t`.
+It is useful when to have to write different code per bitness or handle marshaling of `size_t`.
 
-`size_t` can be represented as `UIntPtr` in P/Invoke signatures. DynLoaderBase's `UIntPtr ToSizeT(ulong size)` and `ulong FromSizeT(UIntPtr size)` helps safe conversion between `ulong` and `UIntPtr`, so the value of `size_t` can be safely marshalled as `ulong`. They check if the to-be-converted-value is valid in the platform address space, and throw `PlatformNotSupportedException` if not. For example, if the `ulong` variable contains the value larger than `uint.MaxValue` in 32bit platform, `PlatformNotSupportedException` will be thrown.
+`size_t` can be represented as `UIntPtr` in P/Invoke signatures. .NET make sure that `UIntPtr` does not store the value larger than the platform's bit size. For example, assigning `ulong.MaxValue` to `UIntPtr` on 32bit platforms invoke `OverflowException`.
 
 #### PlatformUnicodeConvention, PlatformUnicodeEncoding
 
@@ -486,15 +476,13 @@ Similar to x64, platforms are known to enforce one standardized calling conventi
 
 ### Pointer size (`size_t`)
 
-**Recommended Workaround**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .Net world. DynLoader's `ToSizeT()`, `FromSizeT()` methods provide safe way of converting values between `ulong` and `UIntPtr`.
+**Recommended Workaround**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .NET world. 
 
-`size_t` has a different size per architecture. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64). It is troublesome in cross-platform P/Invoke, as no direct counterpart exists in .Net.
+`size_t` has a different size per architecture. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64). It is troublesome in cross-platform P/Invoke, as no direct counterpart exists in .NET.
 
-You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .Net runtime does not provide the direct mechanism, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
+You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .NET runtime does not provide the direct mechanism, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
 
 I recommend to use `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
-
-If you have to expose the value of `size_t` directly in the public API, consider using `ulong` type. Use `ToSizeT()`, `FromSizeT()` methods to safely convert `UIntPtr` (which represents raw `size_t`) to and from `ulong`. 
 
 **Example**: [Joveler.Compression.LZ4](https://github.com/ied206/Joveler.Compression/tree/master/Joveler.Compression.LZ4) use this trick.
 

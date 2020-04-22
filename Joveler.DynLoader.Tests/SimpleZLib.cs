@@ -39,7 +39,7 @@ namespace Joveler.DynLoader.Tests
         {
             Adler32 = GetFuncPtr<adler32>(nameof(adler32));
             Crc32 = GetFuncPtr<crc32>(nameof(crc32));
-            ZLibVersionPtr = GetFuncPtr<zlibVersion>(nameof(zlibVersion));
+            ZLibVersionPtr = GetFuncPtr<zlibVersion>();
         }
 
         /// <inheritdocs/>
