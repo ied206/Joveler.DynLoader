@@ -36,10 +36,6 @@ namespace Joveler.DynLoader
         #region Windows kernel32 API
         internal static class Win32
         {
-            [DllImport("kernel32.dll", SetLastError = true)]
-            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            public static extern IntPtr LoadLibraryW([MarshalAs(UnmanagedType.LPWStr)] string lpLibFileName);
-
             public const uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008;
             [DllImport("kernel32.dll", SetLastError = true)]
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
@@ -87,11 +83,11 @@ namespace Joveler.DynLoader
             }
 
             const ushort LANG_NEUTRAL = 0x00;
-            const ushort LANG_ENGLISH = 0x09;
-            const ushort SUBLANG_NEUTRAL = 0x00;
+            // const ushort LANG_ENGLISH = 0x09;
+            // const ushort SUBLANG_NEUTRAL = 0x00;
             const ushort SUBLANG_DEFAULT = 0x01;
-            const ushort SUBLANG_SYS_DEFAULT = 0x02;
-            const ushort SUBLANG_ENGLISH_US = 0x01; // English (USA)
+            // const ushort SUBLANG_SYS_DEFAULT = 0x02;
+            // const ushort SUBLANG_ENGLISH_US = 0x01; // English (USA)
             public static uint MakeLangId(ushort priLangId, ushort subLangId)
             {
                 // LANG_NEUTRAL + SUBLANG_NEUTRAL = Language neutral
@@ -107,19 +103,19 @@ namespace Joveler.DynLoader
         #region Linux libdl API
         internal static class Linux
         {
-            internal const string Library = "libdl.so.2";
-            internal const int RTLD_NOW = 0x0002;
-            internal const int RTLD_GLOBAL = 0x0100;
+            public const string Library = "libdl.so.2";
+            public const int RTLD_NOW = 0x0002;
+            public const int RTLD_GLOBAL = 0x0100;
 
             [DllImport(Library, EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern IntPtr DLOpen([MarshalAs(UnmanagedType.LPStr)] string fileName, int flags);
+            public static extern IntPtr DLOpen([MarshalAs(UnmanagedType.LPStr)] string fileName, int flags);
 
             [DllImport(Library, EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern int DLClose(IntPtr handle);
+            public static extern int DLClose(IntPtr handle);
 
             [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
-            internal static string DLError()
+            public static string DLError()
             {
                 IntPtr ptr = DLErrorPtr();
                 if (ptr == IntPtr.Zero)
@@ -130,26 +126,26 @@ namespace Joveler.DynLoader
             }
 
             [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
+            public static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
         }
         #endregion
 
         #region MacOS libdl API
         internal static class Mac
         {
-            internal const string Library = "libdl.dylib";
-            internal const int RTLD_NOW = 0x0002;
-            internal const int RTLD_GLOBAL = 0x0100;
+            public const string Library = "libdl.dylib";
+            public const int RTLD_NOW = 0x0002;
+            public const int RTLD_GLOBAL = 0x0100;
 
             [DllImport(Library, EntryPoint = "dlopen", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern IntPtr DLOpen([MarshalAs(UnmanagedType.LPStr)] string fileName, int flags);
+            public static extern IntPtr DLOpen([MarshalAs(UnmanagedType.LPStr)] string fileName, int flags);
 
             [DllImport(Library, EntryPoint = "dlclose", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern int DLClose(IntPtr handle);
+            public static extern int DLClose(IntPtr handle);
 
             [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
-            internal static string DLError()
+            public static string DLError()
             {
                 IntPtr ptr = DLErrorPtr();
                 if (ptr == IntPtr.Zero)
@@ -160,7 +156,7 @@ namespace Joveler.DynLoader
             }
 
             [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
+            public static extern IntPtr DLSym(SafeHandle handle, [MarshalAs(UnmanagedType.LPStr)] string symbol);
         }
         #endregion
     }

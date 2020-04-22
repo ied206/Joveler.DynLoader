@@ -15,7 +15,10 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Add simpler version of GetFuncPtr&lt;T&gt;</PackageReleaseNotes>
+    <PackageReleaseNotes>- Use NativeLoader on .NET Core 3.x build.
+- Better and safer recursive library loading.
+- Add simpler version of GetFuncPtr&lt;T&gt;.
+- Remove unnecessary redundant size_t helper methods.</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <ItemGroup>
