@@ -58,30 +58,6 @@ namespace Joveler.DynLoader
             [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
             public static extern int FreeLibrary(IntPtr hModule);
 
-            /*
-            [DllImport("kernel32.dll", SetLastError = true)]
-            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            public static extern int SetDllDirectoryW([MarshalAs(UnmanagedType.LPWStr)] string lpPathName);
-            [DllImport("kernel32.dll", SetLastError = true)]
-            [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-            private static extern int GetDllDirectoryW(int nBufferLength, StringBuilder lpBuffer);
-
-            public static string GetDllDirectory()
-            {
-                StringBuilder buffer = new StringBuilder(260);
-                int bufferLen = buffer.Capacity;
-                int ret;
-                do
-                {
-                    ret = GetDllDirectoryW(bufferLen, buffer);
-                    if (ret != 0 && bufferLen < ret)
-                        buffer.EnsureCapacity(bufferLen + 4);
-                }
-                while (bufferLen < ret);
-                return ret == 0 ? null : buffer.ToString();
-            }
-            */
-
             const uint FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100;
             const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
             const uint FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;

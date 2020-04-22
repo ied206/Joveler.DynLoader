@@ -121,102 +121,73 @@ namespace Joveler.DynLoader
             }
 #endif
 
-            // Check if we need to set proper directory to search. 
-            // If we don't, LoadLibrary can fail when loading chained dll files.
-            // e.g. Loading x64/A.dll requires implicit load of x64/B.dll -> SetDllDirectory("x64") is required.
-            // When the libPath is just the filename itself (e.g. liblzma.dll), this step is not necessary.
-            string libDir = Path.GetDirectoryName(libPath);
-            bool setLibSearchDir = libDir != null && Directory.Exists(libDir);
-
             // Use .NET Core's NativeLibrary when available
 #if NETCOREAPP3_1
-            LoadNetNativeModule(libPath);
+            // NET's NativeLibrary will throw DllNotFoundException by itself.
+            // No need to check _hModule.IsInvalid here.
+            _hModule = new NetSafeLibHandle(libPath);
 #else
 #if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 #endif
             {
-                if (setLibSearchDir)
+                // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order
+                string libDir = Path.GetDirectoryName(libPath);
+                if (libDir != null && Directory.Exists(libDir))
                 {
-                    string libFullPath = Path.GetFullPath(libPath);
-                    LoadWindowsModule(libFullPath);
+                    // Case 1) dllPath is an relative path and contains one or more directory path. Ex) x64\libmagic.dll
+                    // Case 2) dllPath is an absolute path. Ex) D:\DynLoader\native.dll
+                    string fullDllPath = Path.GetFullPath(libPath);
+                    _hModule = new WinSafeLibHandle(fullDllPath);
                 }
                 else
-                {
-                    LoadWindowsModule(libPath);
+                { // Case) dllPath does not contain any directory path. Ex) kernel32.dll
+                    _hModule = new WinSafeLibHandle(libPath);
                 }
 
-                /*
-                if (setLibSearchDir)
+                if (_hModule.IsInvalid)
                 {
-                    // Library search path guard with try ~ catch
-                    string bakDllDir = NativeMethods.Win32.GetDllDirectory();
-                    try
-                    {
-                        NativeMethods.Win32.SetDllDirectoryW(libDir);
-                        LoadWindowsModule(Path.GetFullPath(libPath));
-                    }
-                    finally
-                    {
-                        // Restore dll search directory to original state
-                        NativeMethods.Win32.SetDllDirectoryW(bakDllDir);
-                    }
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to load DLL 'x64\zlibwapi.dll' or one of its dependencies: The specified module could not be found. (0x8007007E).
+                    // Unable to load DLL 'ᄒᆞᆫ글ḀḘ韓國Ghost.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)
+                    string exceptMsg = $"Unable to load DLL '{libPath}' or one of its dependencies";
+                    int errorCode = Marshal.GetLastWin32Error();
+                    string errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})");
+                    else
+                        throw new DllNotFoundException($"{exceptMsg}: {errorMsg} (0x{errorCode:X8})");
                 }
-                else
-                {
-                    LoadWindowsModule(libPath);
-                }
-                */
             }
 #if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                // Prepare chained library files.
-                const string envVar = "LD_LIBRARY_PATH";
-                if (setLibSearchDir && envVar != null)
+                _hModule = new LinuxSafeLibHandle(libPath);
+                if (_hModule.IsInvalid)
                 {
-                    // Library search path guard with try ~ catch
-                    string bakLibSerachPath = Environment.GetEnvironmentVariable(envVar);
-                    try
-                    {
-                        string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
-                        Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
-
-                        LoadLinuxModule(libPath);
-                    }
-                    finally
-                    {
-                        Environment.SetEnvironmentVariable(envVar, bakLibSerachPath);
-                    }
-                }
-                else
-                {
-                    LoadLinuxModule(libPath);
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.so' or one of its dependencies. In order to help diagnose loading problems, consider setting the LD_DEBUG environment variable: ᄒᆞᆫ글ḀḘ韓國Ghost.so: cannot open shared object file: No such file or directory
+                    string exceptMsg = $"Unable to load shared library '{libPath}' or one of its dependencies";
+                    string errorMsg = NativeMethods.Linux.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new DllNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
                 }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                // Prepare chained library files.
-                const string envVar = "DYLD_LIBRARY_PATH";
-                if (setLibSearchDir && envVar != null)
+                _hModule = new MacSafeLibHandle(libPath);
+                if (_hModule.IsInvalid)
                 {
-                    // Library search path guard with try ~ catch
-                    string bakLibSerachPath = Environment.GetEnvironmentVariable(envVar);
-                    try
-                    {
-                        string newLibSearchPath = bakLibSerachPath == null ? libDir : $"{bakLibSerachPath}:{libDir}";
-                        Environment.SetEnvironmentVariable(envVar, newLibSearchPath);
-
-                        LoadMacModule(libPath);
-                    }
-                    finally
-                    {
-                        Environment.SetEnvironmentVariable(envVar, bakLibSerachPath);
-                    }
-                }
-                else
-                {
-                    LoadMacModule(libPath);
+                    // Sample message of .NET Core 3.1's NativeLoader:
+                    // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.dylib' or one of its dependencies. In order to help diagnose loading problems, consider setting the DYLD_PRINT_LIBRARIES environment variable: dlopen(ᄒᆞᆫ글ḀḘ韓國Ghost.dylib, 1): image not found
+                    string exceptMsg = $"Unable to load shared library '{libPath}' or one of its dependencies";
+                    string errorMsg = NativeMethods.Mac.DLError();
+                    if (string.IsNullOrWhiteSpace(errorMsg))
+                        throw new DllNotFoundException($"{exceptMsg}.");
+                    else
+                        throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
                 }
             }
             else
@@ -263,91 +234,12 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region (private) LoadModule
+        #region (private) SafeLibModule
         /// <summary>
         /// Handle of the native library.
         /// </summary>
         private SafeHandle _hModule;
         private bool Loaded => _hModule != null && !_hModule.IsInvalid;
-
-#if NETCOREAPP3_1
-        /// <summary>
-        /// Available after .NET Core 3.x
-        /// </summary>
-        /// <param name="libPath"></param>
-        private void LoadNetNativeModule(string libPath)
-        {
-            // NET's NativeLibrary will throw DllNotFoundException by itself.
-            // No need to check _hModule.IsInvalid here.
-            _hModule = new NetSafeLibHandle(libPath);
-        }
-#else
-        private void LoadWindowsModule(string dllPath)
-        {
-            // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order
-            string libDir = Path.GetDirectoryName(dllPath);
-            if (libDir != null && Directory.Exists(libDir))
-            {
-                // Case 1) dllPath is an relative path and contains one or more directory path. Ex) x64\libmagic.dll
-                // Case 2) dllPath is an absolute path. Ex) D:\DynLoader\native.dll
-                string fullDllPath = Path.GetFullPath(dllPath);
-                _hModule = new WinSafeLibHandle(fullDllPath);
-            }
-            else
-            { // Case) dllPath does not contain any directory path. Ex) kernel32.dll
-                _hModule = new WinSafeLibHandle(dllPath);
-            }
-
-            if (_hModule.IsInvalid)
-            {
-                // Sample message of .NET Core 3.1's NativeLoader:
-                // Unable to load DLL 'x64\zlibwapi.dll' or one of its dependencies: The specified module could not be found. (0x8007007E).
-                // Unable to load DLL 'ᄒᆞᆫ글ḀḘ韓國Ghost.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)
-                string exceptMsg = $"Unable to load DLL '{dllPath}' or one of its dependencies";
-                int errorCode = Marshal.GetLastWin32Error();
-                string errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
-                if (string.IsNullOrWhiteSpace(errorMsg))
-                    throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})");
-                else
-                    throw new DllNotFoundException($"{exceptMsg}: {errorMsg} (0x{errorCode:X8})");
-            }
-        }
-
-#if !NETFRAMEWORK
-        private void LoadLinuxModule(string soPath)
-        {
-            _hModule = new LinuxSafeLibHandle(soPath);
-            if (_hModule.IsInvalid)
-            {
-                // Sample message of .NET Core 3.1's NativeLoader:
-                // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.so' or one of its dependencies. In order to help diagnose loading problems, consider setting the LD_DEBUG environment variable: ᄒᆞᆫ글ḀḘ韓國Ghost.so: cannot open shared object file: No such file or directory
-                string exceptMsg = $"Unable to load shared library '{soPath}' or one of its dependencies";
-                string errorMsg = NativeMethods.Linux.DLError();
-                if (string.IsNullOrWhiteSpace(errorMsg))
-                    throw new DllNotFoundException($"{exceptMsg}.");
-                else
-                    throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
-            }
-        }
-
-        private void LoadMacModule(string soPath)
-        {
-            _hModule = new MacSafeLibHandle(soPath);
-            if (_hModule.IsInvalid)
-            {
-                // Sample message of .NET Core 3.1's NativeLoader:
-                // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.dylib' or one of its dependencies. In order to help diagnose loading problems, consider setting the DYLD_PRINT_LIBRARIES environment variable: dlopen(ᄒᆞᆫ글ḀḘ韓國Ghost.dylib, 1): image not found
-                string exceptMsg = $"Unable to load shared library '{soPath}' or one of its dependencies";
-                string errorMsg = NativeMethods.Mac.DLError();
-                if (string.IsNullOrWhiteSpace(errorMsg))
-                    throw new DllNotFoundException($"{exceptMsg}.");
-                else
-                    throw new DllNotFoundException($"{exceptMsg}: {errorMsg}");
-            }
-        }
-#endif
-#endif
-
         #endregion
 
         #region (protected) GetFuncPtr
