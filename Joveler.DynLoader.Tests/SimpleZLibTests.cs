@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019 Hajin Jang
+    Copyright (C) 2019-2021 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -108,8 +108,9 @@ namespace Joveler.DynLoader.Tests
         public void CreateDispose()
         {
             string libPath = TestSetup.PackagedZLibPath;
-            using (SimpleZLib zlib = new SimpleZLib(libPath))
+            using (SimpleZLib zlib = new SimpleZLib())
             {
+                zlib.LoadLibrary(libPath);
                 zlib.ZLibVersion();
             }
         }

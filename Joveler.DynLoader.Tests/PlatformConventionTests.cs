@@ -39,6 +39,7 @@ namespace Joveler.DynLoader.Tests
         public void DataModel()
         {
             DynLoaderBase instance = new EmptyLoader();
+            instance.LoadLibrary();
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

@@ -13,10 +13,5 @@ namespace Joveler.DynLoader.Tests
         {
             return new SimpleZLib();
         }
-
-        protected override SimpleZLib CreateLoader(string libPath)
-        {
-            return new SimpleZLib(libPath);
-        }
     }
 }

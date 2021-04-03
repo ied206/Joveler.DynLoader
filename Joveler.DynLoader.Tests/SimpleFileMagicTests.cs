@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019 Hajin Jang
+    Copyright (C) 2019-2021 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -56,8 +56,9 @@ namespace Joveler.DynLoader.Tests
         {
             string libPath = TestSetup.PackagedMagicPath;
 
-            using (SimpleFileMagic m = new SimpleFileMagic(libPath))
+            using (SimpleFileMagic m = new SimpleFileMagic())
             {
+                m.LoadLibrary(libPath);
                 m.MagicVersion();
             }
         }

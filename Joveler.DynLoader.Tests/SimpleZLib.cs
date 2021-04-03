@@ -15,7 +15,6 @@ namespace Joveler.DynLoader.Tests
     {
         #region Constructor
         public SimpleZLib() : base() { }
-        public SimpleZLib(string libPath) : base(libPath) { }
         #endregion
 
         #region Properties

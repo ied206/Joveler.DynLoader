@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2019 Hajin Jang
+    Copyright (C) 2019-2021 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -100,16 +100,27 @@ namespace Joveler.DynLoader.Tests
                 implicitLoadZLib = true;
             }
 
-            ExplicitZLib = new SimpleZLib(PackagedZLibPath);
+            ExplicitZLib = new SimpleZLib();
+            ExplicitZLib.LoadLibrary(PackagedZLibPath);
             if (implicitLoadZLib)
+            { 
                 ImplicitZLib = new SimpleZLib();
+                ImplicitZLib.LoadLibrary();
+            }
 
-            ExplicitMagic = new SimpleFileMagic(PackagedMagicPath);
+            ExplicitMagic = new SimpleFileMagic();
+            ExplicitMagic.LoadLibrary(PackagedMagicPath);
             if (implicitLoadMagic)
+            { 
                 ImplicitMagic = new SimpleFileMagic();
+                ImplicitMagic.LoadLibrary();
+            }
 
             if (implicitLoadPlataform)
+            {
                 PlatformLib = new SimplePlatform();
+                PlatformLib.LoadLibrary();
+            }
         }
 
         [AssemblyCleanup]

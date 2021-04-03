@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019 Hajin Jang
+    Copyright (C) 2019-2021 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -40,6 +40,7 @@ namespace Joveler.DynLoader.Tests
             try
             {
                 GhostError lib = new GhostError();
+                lib.LoadLibrary();
             }
             catch (DllNotFoundException e)
             {
@@ -60,7 +61,8 @@ namespace Joveler.DynLoader.Tests
         {
             try
             {
-                GhostFunction lib = new GhostFunction(TestSetup.PackagedZLibPath);
+                GhostFunction lib = new GhostFunction();
+                lib.LoadLibrary(TestSetup.PackagedZLibPath);
             }
             catch (EntryPointNotFoundException e)
             {
