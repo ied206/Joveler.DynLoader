@@ -109,7 +109,7 @@ namespace Joveler.DynLoader
         /// Called in GlobalInit(string libPath).
         /// </remarks>
         /// <returns>DynLoaderBase instace</returns>
-        [Obsolete("Left as ABI compatibility only, do not use it.")]
+        [Obsolete("Left as ABI compatibility only, remove its override.")]
         protected virtual T CreateLoader(string libPath)
         {
             return CreateLoader();

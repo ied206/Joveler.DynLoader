@@ -110,7 +110,7 @@ namespace Joveler.DynLoader
         /// <summary>
         /// Create an instance of DynLoaderBase, and set platform conventions.
         /// </summary>
-        [Obsolete("Left as ABI compatibility only, do not use it.")]
+        [Obsolete("Left as ABI compatibility only, remove its override.")]
         protected DynLoaderBase(string libPath) : this() { }
         #endregion
 
