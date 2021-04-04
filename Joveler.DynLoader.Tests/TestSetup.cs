@@ -51,11 +51,13 @@ namespace Joveler.DynLoader.Tests
             SampleDir = Path.Combine(BaseDir, "Samples");
 
             const string zlibDllName = "zlibwapi.dll";
+            const string magicDllName = "libmagic-1.dll";
+#if NETCOREAPP
             const string zlibSoName = "libz.so";
             const string zlibDylibName = "libz.dylib";
-            const string magicDllName = "libmagic-1.dll";
             const string magicSoName = "libmagic.so";
             const string magicDylibName = "libmagic.dylib";
+#endif
 
             string arch = null;
             switch (RuntimeInformation.ProcessArchitecture)
@@ -72,33 +74,49 @@ namespace Joveler.DynLoader.Tests
                 case Architecture.Arm64:
                     arch = "arm64";
                     break;
-                default:
-                    throw new PlatformNotSupportedException();
             }
 
             bool implicitLoadZLib = false;
             bool implicitLoadMagic = false;
             bool implicitLoadPlataform = false;
+
+            string libDir;
+#if NETFRAMEWORK
+            libDir = arch;
+#elif NETCOREAPP
+            libDir = "runtimes";
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                libDir = Path.Combine(libDir, "win-");
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                libDir = Path.Combine(libDir, "linux-");
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                libDir = Path.Combine(libDir, "osx-");
+            libDir += arch;
+            libDir = Path.Combine(libDir, "native");
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
             {
-                PackagedZLibPath = Path.Combine(arch, zlibDllName);
-                PackagedMagicPath = Path.Combine(arch, magicDllName);
+                PackagedZLibPath = Path.Combine(libDir, zlibDllName);
+                PackagedMagicPath = Path.Combine(libDir, magicDllName);
                 implicitLoadPlataform = true;
             }
+#if NETCOREAPP
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                PackagedZLibPath = Path.Combine(arch, zlibSoName);
-                PackagedMagicPath = Path.Combine(arch, magicSoName);
+                PackagedZLibPath = Path.Combine(libDir, zlibSoName);
+                PackagedMagicPath = Path.Combine(libDir, magicSoName);
                 implicitLoadZLib = true;
                 implicitLoadMagic = true;
                 implicitLoadPlataform = true;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                PackagedZLibPath = Path.Combine(arch, zlibDylibName);
-                PackagedMagicPath = Path.Combine(arch, magicDylibName);
+                PackagedZLibPath = Path.Combine(libDir, zlibDylibName);
+                PackagedMagicPath = Path.Combine(libDir, magicDylibName);
                 implicitLoadZLib = true;
             }
+#endif
 
             ExplicitZLib = new SimpleZLib();
             ExplicitZLib.LoadLibrary(PackagedZLibPath);

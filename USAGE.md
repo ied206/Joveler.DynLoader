@@ -477,12 +477,12 @@ This method does not work on application projects.
 
 For the .NET Framework NuGet package, write an MSBuild script to handle native libraries. 
 
-**Example**: Add MSBuild script [SimpleZLib.targets](./Joveler.DynLoader.Tests/SimpleZLib.targets) to the project directory. Also add this line to .csproj:
+**Example**: Add MSBuild script [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/SampleScript.netfx.targets) to the project directory. Also add this line to .csproj:
 ```xml
-<Import Project="$(MSBuildProjectDirectory)\SimpleZLib.targets" />
+<Import Project="$(MSBuildProjectDirectory)\SampleScript.netfx.targets" />
 ```
 
-You can freely adapt [SimpleZLib.targets](./Joveler.DynLoader.Tests/SimpleZLib.targets) and [SimpleFileMagic.targets](./Joveler.DynLoader.Tests/SimpleFileMagic.targets) from the test code for your need. They are released in public domain, based on work of [System.Data.SQLite.Core](https://www.nuget.org/packages/System.Data.SQLite.Core/).
+You can freely adapt [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/SampleScript.netfx.targets) from the test code for your need. They are released in public domain, based on work of [System.Data.SQLite.Core](https://www.nuget.org/packages/System.Data.SQLite.Core/).
 
 #### Example
 

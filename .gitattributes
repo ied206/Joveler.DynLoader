@@ -4,6 +4,11 @@
 * text=auto
 
 ###############################################################################
+# magic.mgc / magic.txt 
+###############################################################################
+Joveler.DynLoader.Tests/contentFiles/any/any/magic.txt text eol=lf 
+
+###############################################################################
 # Set default behavior for command prompt diff.
 #
 # This is need for earlier builds of msysgit that does not have it on by
