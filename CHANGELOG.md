@@ -2,6 +2,16 @@
 
 ## v2.x
 
+### v2.1.0
+
+Release in 2021.04.05.
+
+- Avoid calling virtual methods from constructors in `DynLoaderBase`.
+    - Users must call `DynLoaderBase.LoadLibrary` after creating an instance.
+    - Constructor with a library path is now obsolete. Pass a path into `LoadLibrary` instead.
+    - It breaks the ABI compatibility of `DynLoaderBase`. However, `LoadManagerBase` was also patched to accommodate these changes.
+    - If you used the `LoadManagerBase` interface, you can safely update Joveler.DynLoader without any code change.
+
 ### v2.0.0
 
 Released in 2020.04.24.
