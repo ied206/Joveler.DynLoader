@@ -41,9 +41,11 @@ The library provides advanced p/invoke functionality of C functions using [Nativ
 
 | Platform | Implementation               | Tested            |
 |----------|------------------------------|-------------------|
-| Windows  | NativeLibrary, LoadLibraryEx | x86, x64          |
+| Windows  | NativeLibrary, LoadLibraryEx | x86, x64, arm64   |
 | Linux    | NativeLibrary, libdl         | x64, armhf, arm64 |
 | macOS    | NativeLibrary, libdl         | x64               |
+
+macOS arm64 should be supported on theory, but I do not have access to an Apple Sillicon device to test. Please contribute if you have an ARM64 macOS machine.
 
 ## Usage
 

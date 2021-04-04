@@ -6,6 +6,51 @@ The library provide two abstract class, [DynLoaderBase](#DynLoaderBase) and [Loa
 
 Please also read [P/Invoke Tips from DynLoader](#Tips) for your easy P/Invoke life.
 
+## Getting Started
+
+To use DynLoader, you should know about two classes.
+
+| Class        | 역할 |
+|--------------|------|
+| [DynLoaderBase](#DynLoaderBase) | Scaffold of a native library wrapper. |
+| [LoadManagerBase](#LoadManagerBase) | Manages `DynLoaderBase` singleton instance. |
+
+Follow these steps to create a wrapper of a native library.
+
+1. Implement a child class of `DynLoaderBase`.
+    - Translate extern native function prototypes into C\# delegates.
+    - Implement abstract methods and properties.
+        - Load delegate instance in `LoadFunctions`.
+        - Implement `DefaultLibFileName`.
+    - Example: [magic.cs](./Joveler.DynLoader.Tests/SimpleFileMagic.cs)
+1. Implement a child class of `LoadManagerBase`.
+    - Implement abstract methods and properties.
+        - Implement `ErrorMsgInitFirst`, `ErrorMsgAlreadyLoaded`, `CreateLoader()`
+    ```csharp
+    internal class MagicLoadManager : LoadManagerBase<MagicLoader>
+    {
+        protected override string ErrorMsgInitFirst => "Please call Magic.GlobalInit() first!";
+        protected override string ErrorMsgAlreadyLoaded => "Joveler.FileMagician is already initialized.";
+        protected override MagicLoader CreateLoader() => new MagicLoader();
+    }
+    ```
+
+Follow these steps to use a wrapper library.
+
+1. Make an interface which calls `LoadManagerBase.GlobalInit()`.
+    ```csharp
+    public class Magic : IDisposable
+    {
+        internal static MagicLoadManager Manager = new MagicLoadManager();
+        internal static MagicLoader Lib => Manager.Lib;
+        public static void GlobalInit() => Manager.GlobalInit();
+        public static void GlobalInit(string libPath) => Manager.GlobalInit(libPath);
+        public static void GlobalCleanup() => Manager.GlobalCleanup();
+    }
+    ```
+1. Call `GlobalInit()` to load native functions.
+1. Call delegate instances to call corresponding native functions.
+
 ## DynLoaderBase
 
 [DynLoaderBase](./Joveler.DynLoader/DynLoaderBase.cs) class provides a scaffold of a native library wrapper.
@@ -14,18 +59,18 @@ Inherit [DynLoaderBase](./Joveler.DynLoader/DynLoaderBase.cs) to create a wrappe
 
 **Example Files**
 
-[Joveler.DynLoader.Tests](./Joveler.DynLoader.Tests) contains simplified wrappers of [zlib](https://www.zlib.net) and [libmagic](http://www.darwinsys.com/file/) as examples. You can freely adapt them as you need, they are released as public domain.
+[Joveler.DynLoader.Tests](./Joveler.DynLoader.Tests) contains simplified wrappers of [zlib](https://www.zlib.net) and [libmagic](http://www.darwinsys.com/file/) as examples. Freely adapt them as you need, they are released as public domain.
 
 - zlib : [SimpleZLib.cs](./Joveler.DynLoader.Tests/SimpleZLib.cs)
 - magic : [SimpleFileMagic.cs](./Joveler.DynLoader.Tests/SimpleFileMagic.cs)
 
-The test project also has the showcase of per-platform delegate declarations. Read [SimplePlatform.cs](./Joveler.DynLoader.Tests/SimplePlatform.cs)
+The test project also showcases per-platform delegate declarations. Read [SimplePlatform.cs](./Joveler.DynLoader.Tests/SimplePlatform.cs).
 
 ### Delegate of native functions
 
 You need to provide a prototype of the native functions, similar to traditional [DllImport P/Invoke](https://docs.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke).
 
-First, translate a prototype of native function into a managed delegate. The delegate must have [UnmanagedFunctionPointerAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.unmanagedfunctionpointerattribute). The attribute has similar parameters to [DllImportAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.dllimportattribute).
+First, translate a prototype of the native function into a managed delegate. The delegate must have [UnmanagedFunctionPointerAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.unmanagedfunctionpointerattribute). The attribute has similar parameters to [DllImportAttribute](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.dllimportattribute).
 
 You should declare a delegate type and a delegate instance as a pair per one native function. The delegate type represents the parameter and returns types, while you can call the function by invoking the delegate instance.
 
@@ -46,31 +91,33 @@ private zlibVersion ZLibVersionPtr;
 public string ZLibVersion() => Marshal.PtrToStringAnsi(ZLibVersionPtr());
 ```
 
-### Constructors
+### Constructor
 
-You have to implement your own constructors, using protected constructors of `DynLoaderBase`.
+You have to declare a parameterless constructor in a derived class.
 
 ```csharp
-/// <summary>
-/// Load a native dynamic library from a given path.
-/// </summary>
-/// <param name="libPath">A native library file to load.</param>
-protected DynLoaderBase(string libPath)
-/// <summary>
-/// Load a native dynamic library from a path of `DefaultLibFileName`.
-/// </summary>
-protected DynLoaderBase() : this(null)
+// DynLoaderBase constructor signature
+protected DynLoaderBase() { ... }
+// -------------------------------------------------------------------
+// Parameterless constructor of a derived class
+public SimpleFileMagic() : base() { }
 ```
 
-The constructor with a path parameter loads that specific native library. The parameterless constructor tries to load the default native library from the base system. 
+### LoadLibrary
+
+After creating an instance of a derived class, make sure to call `LoadLibrary()` to load a native library. After then you can invoke extern native functions via delegate instances.
+
+`LoadLibrary(string libPath)` loads that specific native library. The parameterless version loads the default native library from the base system. 
+
+When it fails to find a native library, [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception?view=netcore-3.1) is thrown. 
+
+#### How a native library is loaded
 
 On .NET Core 3.x, DynLoader depends on .NET's own [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) class to load a native library. On .NET Framework and .NET Standard build, DynLoader calls platform-native APIs to load dynamic libraries at runtime. DynLoader tries its best to ensure consistent behavior regardless of which .NET platform you are using.
 
-Under the hood, DynLoader calls [LoadLibraryEx](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) with `LOAD_WITH_ALTERED_SEARCH_PATH` flag on Windows, and [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) with `RTLD_NOW | RTLD_GLOBAL` on POSIX. [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) also use highly similar tactics.
+Under the hood, DynLoader calls [LoadLibraryEx](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) with `LOAD_WITH_ALTERED_SEARCH_PATH` flag on Windows, and [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) with `RTLD_NOW | RTLD_GLOBAL` on POSIX. [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) also use similar tactics.
 
-DynLoader follows the OS's library resolving order. On Windows, it follows [alternative library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order#alternate-search-order-for-desktop-applications). On POSIX, it follows the order explained on [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) manual.
-
-When it fails to load a native library, [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception?view=netcore-3.1) is thrown. 
+DynLoader follows the OS's library resolving order. On Windows, it follows [alternative library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order#alternate-search-order-for-desktop-applications). On POSIX, it follows the order explained on [dlopen manual](http://man7.org/linux/man-pages/man3/dlopen.3.html).
 
 ### Methods and property to override
 
@@ -95,13 +142,15 @@ protected abstract void ResetFunctions();
 
 #### LoadFunctions()
 
-You must override `LoadFunctions()` with a code loading delegates of native functions. 
+You must override `LoadFunctions()` with a code loading delegate of native functions. 
 
-Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function symbol name (`funcSymbol`) to get a C# delegate of a symbol. Assign return value as a delegate instance you previously declared. `GetFuncPtr<T>()` is a less slow but more convenient variant. It uses `Reflection` to get a real name of `T` at runtime.
+Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function symbol name (`funcSymbol`) to get a C# delegate of a symbol. Assign return value as a delegate instance you previously declared. 
 
-When `GetFuncPtr<T>()` and its overload fail to load a native function, [EntryPointNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.entrypointnotfoundexception?view=netcore-3.1) is thrown. 
+The parameterless `GetFuncPtr<T>()` is a slow but more convenient variant. It uses reflection (`typeof(T).Name`) to get a real name of `T` at runtime. If your target platform restricts the use of reflection, do not use it.
 
-`LoadFunctions()` is called from the class constructor, so you do not need to call it yourself. You can invoke the delegate instances to call extern native functions after the class instance was created.
+When `GetFuncPtr<T>` fails to load a native function, [EntryPointNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.entrypointnotfoundexception?view=netcore-3.1) is thrown. 
+
+After the library is loaded, invoke the delegate instances to call extern native functions.
 
 **Example**
 
@@ -120,11 +169,11 @@ protected override void LoadFunctions()
 
 Override `ResetFunctions()` when you want to explicitly clear native resources and delegate assignments.
 
-Usually, the override of this method is not required, as the `ResetFunctions` method is called when the instance is disposed of. But if you need to clear native resources as well as delegate assignment, you have to override it.
+Usually, the override of this method is not required, as the library handle is automatically cleared when the instance is disposed of. But if you need to clear delegate assignments manually, you have to implement it.
 
 #### DefaultLibFileName
 
-Override `DefaultLibFileName` only if the target platform ships with the native library. If the property is overridden, the constructor will try to load the library with default filename when the `libPath` parameter is null. If not, the constructor will throw `ArgumentNullException` when the `libPath` parameter is null.
+Override `DefaultLibFileName` only if the target platform ships with the native library. If the property is overridden, the constructor will try to load the library with the default filename when the `libPath` parameter is null. If not, the constructor will throw `ArgumentNullException`.
 
 If only some of the target platforms ship with the native library, throw `PlatformNotSupportedException` when they do not. For example, when you write a wrapper of zlib, you can load the system zlib on Linux and macOS, but not in Windows. In that case, return `libz.so` and `libz.dylib` on Linux and macOS, and throw `PlatformNotSupportedException` on Windows.
 
@@ -290,7 +339,7 @@ Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM.
 
 `string PtrToStringAuto(IntPtr ptr)`, `IntPtr StringToHGlobalAuto(string str)` and `IntPtr StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on value of `UnicodeConvention` property.
 
-**WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite `UnicodeConvention` value after the class was initialized.
+**WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from the POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite the `UnicodeConvention` value after the class was initialized.
 
 ### Disposable Pattern
 
@@ -312,14 +361,6 @@ The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotne
 /// <returns>DynLoaderBase instace</returns>
 protected abstract T CreateLoader();
 /// <summary>
-/// Represents constructor of DynLoaderBase with a `libPath` parameter.
-/// </summary>
-/// <remarks>
-/// Called in GlobalInit(string libPath).
-/// </remarks>
-/// <returns>DynLoaderBase instace</returns>
-protected abstract T CreateLoader(string libPath);
-/// <summary>
 /// "Please init the library first" error message
 /// </summary>
 protected abstract string ErrorMsgInitFirst { get; }
@@ -331,7 +372,7 @@ protected abstract string ErrorMsgAlreadyLoaded { get; }
 
 #### CreateLoader()
 
-Create instance of `DynLoaderBase` in `CreateLoader()` methods. You should implement two variant of `CreateLoader()`.
+The `CreateLoader()` method creates instances of `DynLoaderBase`. You should implement `CreateLoader()` like this example.
 
 **Example**
 
@@ -339,11 +380,6 @@ Create instance of `DynLoaderBase` in `CreateLoader()` methods. You should imple
 protected override SimpleZLib CreateLoader()
 {
     return new SimpleZLib();
-}
-
-protected override SimpleZLib CreateLoader(string libPath)
-{
-    return new SimpleZLib(libPath);
 }
 ```
 
@@ -399,7 +435,7 @@ protected virtual void PostDisposeHook() { }
 
 When your app depends on user libraries, not a Win32 API, or a system call, you have to bundle the libraries yourself.
 
-1. Set `Copy to Output Directory` property of native binaries.
+#### 1) Set `Copy to Output Directory` property of native binaries.
 
 Add native library files into the project, and set `Copy to Output Directory` to `Copy if newer` in their property.
 
@@ -415,11 +451,31 @@ Add native library files into the project, and set `Copy to Output Directory` to
 </ItemGroup>
 ```
 
-This method is recommended for application projects, as it is the simplest.
+This method is recommended for application projects, as it is the simplest. However, it does not work on NuGet packages, so other methods should be used.
 
-2. Use MSBuild Scripts
+#### 2) Standard NuGet package layout
 
-The situations change when you want to bundle native libraries within NuGet packages.
+If you want to bundle native libraries within a .NET Core NuGet package, place files following the standard NuGet package layout.
+
+```
+Place native libraries like this on .nupkg file:
+
+- runtimes\win-x86\native\zlibwapi.dll
+- runtimes\win-x64\native\zlibwapi.dll
+- runtimes\win-arm64\native\zlibwapi.dll
+- runtimes\linux-x64\native\libz.so
+- runtimes\linux-arm\native\libz.so
+- runtimes\linux-arm64\native\libz.so
+- runtimes\osx-x64\native\libz.dylib
+```
+
+For more info, read [NuGet package layout](https://docs.microsoft.com/en-us/nuget/create-packages/supporting-multiple-target-frameworks) document.
+
+This method does not work on application projects.
+
+#### 3) Use MSBuild scripts
+
+For the .NET Framework NuGet package, write an MSBuild script to handle native libraries. 
 
 **Example**: Add MSBuild script [SimpleZLib.targets](./Joveler.DynLoader.Tests/SimpleZLib.targets) to the project directory. Also add this line to .csproj:
 ```xml
@@ -428,7 +484,71 @@ The situations change when you want to bundle native libraries within NuGet pack
 
 You can freely adapt [SimpleZLib.targets](./Joveler.DynLoader.Tests/SimpleZLib.targets) and [SimpleFileMagic.targets](./Joveler.DynLoader.Tests/SimpleFileMagic.targets) from the test code for your need. They are released in public domain, based on work of [System.Data.SQLite.Core](https://www.nuget.org/packages/System.Data.SQLite.Core/).
 
-This method is recommended for NuGet packages. The first method does not automatically work on NuGet packages, so using the MSBuild script is required.
+#### Example
+
+This is the snippet extracted from the sample .csproj file.
+
+- (1) Use `Copy to Output Directory` for application build.
+- (2) Create standard NuGet package layout for .NET Core nupkg.
+- (3) Use MSBuild scripts for .NET Framework nupkg.
+
+```xml
+<!-- (Method 1) Native Library for .NET Framework 4.5.1 -->
+<ItemGroup Condition=" '$(TargetFramework)' == 'net451' ">
+    <None Include="runtimes\win-x86\native\*.dll">
+        <Link>x86\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\win-x64\native\*.dll">
+        <Link>x64\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+</ItemGroup>
+<!-- (Method 1) Native Library for .NET Standard 2.0 & 2.1 -->
+<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'">
+    <None Include="runtimes\win-x86\native\*.dll">
+        <Link>runtimes\win-x86\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\win-x64\native\*.dll">
+        <Link>runtimes\win-x64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\win-arm64\native\*.dll">
+        <Link>runtimes\win-arm64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\linux-x64\native\*.so">
+        <Link>runtimes\linux-x64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\linux-arm\native\*.so">
+        <Link>runtimes\linux-arm\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\linux-arm64\native\*.so">
+        <Link>runtimes\linux-arm64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\osx-x64\native\*.dylib">
+        <Link>runtimes\osx-x64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+</ItemGroup>
+<!-- NuGet Pacakge -->
+<ItemGroup>
+    <!-- (Method 2) Create standard NuGet package layout -->
+    <None Include="runtimes\win-x86\native\*.dll"    Pack="true" PackagePath="runtimes\win-x86\native"/>
+    <None Include="runtimes\win-x64\native\*.dll"    Pack="true" PackagePath="runtimes\win-x64\native"/>
+    <None Include="runtimes\win-arm64\native\*.dll"  Pack="true" PackagePath="runtimes\win-arm64\native"/>
+    <None Include="runtimes\linux-x64\native\*.so"   Pack="true" PackagePath="runtimes\linux-x64\native"/>
+    <None Include="runtimes\linux-arm\native\*.so"   Pack="true" PackagePath="runtimes\linux-arm\native"/>
+    <None Include="runtimes\linux-arm64\native\*.so" Pack="true" PackagePath="runtimes\linux-arm64\native"/>
+    <None Include="runtimes\osx-x64\native\*.dylib"  Pack="true" PackagePath="runtimes\osx-x64\native"/>
+    <!-- (Method 3) Build Script for .NET Framework -->
+    <None Include="Joveler.FileMagician.netfx.targets" Pack="true" PackagePath="build\net451\Joveler.FileMagician.targets"/>
+</ItemGroup>
+```
 
 ### Calling conventions
 
@@ -466,13 +586,13 @@ Some cross-platform libraries use stdcall on Windows and cdecl on POSIX (e.g., z
 On x64, every platform enforces using the standardized fastcall convention. So, in theory, you do not need to care about it.
 
 - Windows: Microsoft x64 calling convention
-- POSIX: System V AMD64 ABI. 
+- POSIX: System V AMD64 ABI
 
-I still recommend specifying calling conventions (cdecl, stdcall, winapi) for 32bit compatibility, however.
+I still recommend specifying calling conventions (cdecl, stdcall, winapi) for x86 compatibility, however.
 
 #### armhf and arm64
 
-Similar to x64, platforms are known to enforce one standardized calling convention. 
+Similar to x64, these platforms are known to enforce one standardized calling convention. 
 
 ### Pointer size (`size_t`)
 
@@ -482,7 +602,7 @@ Similar to x64, platforms are known to enforce one standardized calling conventi
 
 You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .NET runtime does not provide the direct mechanism, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
 
-I recommend to use `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
+I recommend using `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
 
 **Example**: [Joveler.Compression.LZ4](https://github.com/ied206/Joveler.Compression/tree/master/Joveler.Compression.LZ4) use this trick.
 

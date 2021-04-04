@@ -148,20 +148,7 @@ namespace Joveler.DynLoader
         /// </summary>
         public void GlobalInit()
         {
-            lock (LoadLock)
-            {
-                if (Lib == null)
-                {
-                    PreInitHook();
-                    Lib = CreateLoader();
-                    Lib.LoadLibrary();
-                    PostInitHook();
-                }
-                else
-                {
-                    throw new InvalidOperationException(ErrorMsgInitFirst);
-                }
-            }
+            GlobalInit(null);
         }
 
         /// <summary>

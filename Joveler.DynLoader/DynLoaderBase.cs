@@ -37,7 +37,7 @@ namespace Joveler.DynLoader
     {
         #region Constructor
         /// <summary>
-        /// Create an instance of DynLoaderBase, and set platform conventions.
+        /// Create an instance of DynLoaderBase and set platform conventions.
         /// </summary>
         protected DynLoaderBase()
         { 
