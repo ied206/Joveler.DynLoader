@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019-2020 Hajin Jang
+    Copyright (C) 2019-2021 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -37,26 +37,11 @@ namespace Joveler.DynLoader
     {
         #region Constructor
         /// <summary>
-        /// Load a native dynamic library from a path of `DefaultLibFileName`.
+        /// Create an instance of DynLoaderBase and set platform conventions.
         /// </summary>
-        protected DynLoaderBase() : this(null) { }
-
-        /// <summary>
-        /// Load a native dynamic library from a given path.
-        /// </summary>
-        /// <param name="libPath">A native library file to load.</param>
-        protected DynLoaderBase(string libPath)
-        {
-            // Should DynLoaderBase use default library filename?
-            if (libPath == null)
-            {
-                if (DefaultLibFileName == null)
-                    throw new ArgumentNullException(nameof(libPath));
-
-                libPath = DefaultLibFileName;
-            }
-
-            // Retreive platform convention
+        protected DynLoaderBase()
+        { 
+            // Set platform conventions.
 #if NETFRAMEWORK
             UnicodeConvention = UnicodeConvention.Utf16;
             PlatformLongSize = PlatformLongSize.Long32;
@@ -120,6 +105,62 @@ namespace Joveler.DynLoader
                     break;
             }
 #endif
+        }
+
+        /// <summary>
+        /// Create an instance of DynLoaderBase, and set platform conventions.
+        /// </summary>
+        [Obsolete("Left as ABI compatibility only, remove its override.")]
+        protected DynLoaderBase(string libPath) : this() { }
+        #endregion
+
+        #region Disposable Pattern
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing && Loaded)
+            {
+                GlobalCleanup();
+            }
+        }
+
+        private void GlobalCleanup()
+        {
+            ResetFunctions();
+
+            _hModule.Dispose();
+            _hModule = null;
+        }
+        #endregion
+
+        #region (public) LoadLibrary
+        /// <summary>
+        /// Load a native dynamic library from a path of `DefaultLibFileName`.
+        /// </summary>
+        public void LoadLibrary()
+        {
+            LoadLibrary(null);
+        }
+
+        /// <summary>
+        /// Load a native dynamic library from a given path.
+        /// </summary>
+        /// <param name="libPath">A native library file to load.</param>
+        public void LoadLibrary(string libPath)
+        {
+            // Should DynLoaderBase use default library filename?
+            if (libPath == null)
+            {
+                if (DefaultLibFileName == null)
+                    throw new ArgumentNullException(nameof(libPath));
+
+                libPath = DefaultLibFileName;
+            }
 
             // Use .NET Core's NativeLibrary when available
 #if NETCOREAPP3_1
@@ -207,30 +248,6 @@ namespace Joveler.DynLoader
                 GlobalCleanup();
                 throw;
             }
-        }
-        #endregion
-
-        #region Disposable Pattern
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing && Loaded)
-            {
-                GlobalCleanup();
-            }
-        }
-
-        private void GlobalCleanup()
-        {
-            ResetFunctions();
-
-            _hModule.Dispose();
-            _hModule = null;
         }
         #endregion
 

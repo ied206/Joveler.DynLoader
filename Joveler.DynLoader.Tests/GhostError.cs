@@ -15,7 +15,6 @@ namespace Joveler.DynLoader.Tests
     {
         #region Constructor
         public GhostError() : base() { }
-        public GhostError(string libPath) : base(libPath) { }
         #endregion
 
         #region Properties
@@ -55,7 +54,6 @@ namespace Joveler.DynLoader.Tests
     {
         #region Constructor
         public GhostFunction() : base() { }
-        public GhostFunction(string libPath) : base(libPath) { }
         #endregion
 
         #region Properties

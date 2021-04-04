@@ -15,7 +15,6 @@ namespace Joveler.DynLoader.Tests
     {
         #region Constructor
         public SimpleZLib() : base() { }
-        public SimpleZLib(string libPath) : base(libPath) { }
         #endregion
 
         #region Properties
@@ -24,7 +23,7 @@ namespace Joveler.DynLoader.Tests
             get
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    return "libz.so";
+                    return "libz.so.1";
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     return "libz.dylib";
 

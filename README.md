@@ -32,7 +32,7 @@ The library provides advanced p/invoke functionality of C functions using [Nativ
 ### Targeted .NET platforms
 
 - .NET Core 3.1
-    - Depends on .NET's [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1).
+    - Depends on .NET's [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary).
 - .NET Standard 2.0 (.NET Framework 4.6.1+, .NET Core 2.0+)
 - .NET Framework 4.5.1
     - Depends on [LoadLibraryEx](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) and [libdl](http://man7.org/linux/man-pages/man3/dlopen.3.html) native API.
@@ -41,9 +41,11 @@ The library provides advanced p/invoke functionality of C functions using [Nativ
 
 | Platform | Implementation               | Tested            |
 |----------|------------------------------|-------------------|
-| Windows  | NativeLibrary, LoadLibraryEx | x86, x64          |
+| Windows  | NativeLibrary, LoadLibraryEx | x86, x64, arm64   |
 | Linux    | NativeLibrary, libdl         | x64, armhf, arm64 |
 | macOS    | NativeLibrary, libdl         | x64               |
+
+macOS arm64 should be supported on theory, but I do not have access to an Apple Sillicon device to test. Please contribute if you have an ARM64 macOS machine.
 
 ## Usage
 

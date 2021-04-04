@@ -19,11 +19,6 @@ namespace Joveler.DynLoader.Tests
             return new SimpleFileMagic();
         }
 
-        protected override SimpleFileMagic CreateLoader(string libPath)
-        {
-            return new SimpleFileMagic(libPath);
-        }
-
         protected override void PreInitHook()
         {
             PreInitHookCalled = true;

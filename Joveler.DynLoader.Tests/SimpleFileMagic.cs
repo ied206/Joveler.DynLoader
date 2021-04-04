@@ -15,7 +15,6 @@ namespace Joveler.DynLoader.Tests
     {
         #region Constructor
         public SimpleFileMagic() : base() { }
-        public SimpleFileMagic(string libPath) : base(libPath) { }
         #endregion
 
         #region Properties
