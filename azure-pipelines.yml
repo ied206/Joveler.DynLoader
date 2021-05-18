@@ -50,4 +50,5 @@ steps:
   displayName: 'Publish Code Coverage Report'
   inputs:
     codeCoverageTool: 'Cobertura'
-    summaryFileLocation: '$(Common.TestResultsDirectory)/**/cobertura.coverage.xml'
+    summaryFileLocation: '$(Common.TestResultsDirectory)/**/coverage.cobertura.xml
+'
