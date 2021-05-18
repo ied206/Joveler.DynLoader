@@ -14,6 +14,7 @@ trigger:
     include:
     - master
     - develop
+    - ciconf
 
 pool:
   vmImage: $(imageName)
@@ -46,9 +47,13 @@ steps:
     command: 'test'
     projects: '**/*.Tests/*.csproj'
     arguments: '--configuration $(buildConfiguration) --logger="console;verbosity=detailed" --collect:"XPlat Code Coverage" --settings:"$(Build.SourcesDirectory)/coverlet.runsettings"'
+- task: PublishTestResults@2
+  displayName: 'Publish Test Report'
+  inputs:
+    testResultsFormat: 'VSTest'
+    testResultsFiles: '**/TEST-*.trx'
 - task: PublishCodeCoverageResults@1
   displayName: 'Publish Code Coverage Report'
   inputs:
     codeCoverageTool: 'Cobertura'
-    summaryFileLocation: '$(Common.TestResultsDirectory)/**/coverage.cobertura.xml
-'
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.cobertura.xml'
