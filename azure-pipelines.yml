@@ -56,9 +56,9 @@ steps:
   displayName: 'Publish Test Report'
   inputs:
     testResultsFormat: 'VSTest'
-    testResultsFiles: '$(System.DefaultWorkingDirectory)/*.trx'
+    testResultsFiles: '$(Agent.TempDirectory)/*.trx'
 - task: PublishCodeCoverageResults@1
   displayName: 'Publish Code Coverage Report'
   inputs:
     codeCoverageTool: 'Cobertura'
-    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.cobertura.xml'
+    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
