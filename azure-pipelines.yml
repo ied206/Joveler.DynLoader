@@ -45,4 +45,9 @@ steps:
   inputs:
     command: 'test'
     projects: '**/*.Tests/*.csproj'
-    arguments: '--configuration $(buildConfiguration) --logger="console;verbosity=detailed"'
+    arguments: '--configuration $(buildConfiguration) --logger="console;verbosity=detailed" --collect:"XPlat Code Coverage" --settings .\coverlet.runsettings -r TestResults'
+- task: PublishCodeCoverageResults@1
+  displayName: 'Publish Code Coverage Report'
+  inputs:
+    codeCoverageTool: 'Cobertura'
+    summaryFileLocation: '$(Build.SourcesDirectory)/TestResults/**/cobertura.coverage.xml'
