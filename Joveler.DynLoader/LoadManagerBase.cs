@@ -24,6 +24,7 @@
 */
 
 using System;
+using System.Threading;
 
 namespace Joveler.DynLoader
 {
@@ -53,17 +54,22 @@ namespace Joveler.DynLoader
         #endregion
 
         #region Thread-Safe Load Lock Management
-        private readonly object LoadLock = new object();
+        private readonly ReaderWriterLockSlim LoadLock = new ReaderWriterLockSlim();
         /// <summary>
-        /// 
+        /// Is the library loaded?
         /// </summary>
         public bool Loaded
         {
             get
             {
-                lock (LoadLock)
+                LoadLock.EnterReadLock();
+                try
                 {
                     return Lib != null;
+                }
+                finally
+                {
+                    LoadLock.ExitReadLock();
                 }
             }
         }
@@ -73,10 +79,15 @@ namespace Joveler.DynLoader
         /// </summary>
         public void EnsureLoaded()
         {
-            lock (LoadLock)
+            LoadLock.EnterReadLock();
+            try
             {
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);
+            }
+            finally
+            {
+                LoadLock.ExitReadLock();
             }
         }
 
@@ -85,10 +96,15 @@ namespace Joveler.DynLoader
         /// </summary>
         public void EnsureNotLoaded()
         {
-            lock (LoadLock)
+            LoadLock.EnterReadLock();
+            try
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
+            }
+            finally
+            {
+                LoadLock.ExitReadLock();
             }
         }
         #endregion
@@ -118,14 +134,14 @@ namespace Joveler.DynLoader
         /// Allocate other external resources before CreateLoader get called.
         /// </summary>
         /// <remarks>
-        /// Called in GlobalInit() and GlobalInit(string libPath).
+        /// Called in GlobalInit().
         /// </remarks>
         protected virtual void PreInitHook() { }
         /// <summary>
         /// Allocate other external resources after CreateLoader get called.
         /// </summary>
         /// <remarks>
-        /// Called in GlobalInit() and GlobalInit(string libPath).
+        /// Called in GlobalInit().
         /// </remarks>
         protected virtual void PostInitHook() { }
         /// <summary>
@@ -157,7 +173,8 @@ namespace Joveler.DynLoader
         /// <param name="libPath"></param>
         public void GlobalInit(string libPath)
         {
-            lock (LoadLock)
+            LoadLock.EnterWriteLock();
+            try
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
@@ -167,6 +184,10 @@ namespace Joveler.DynLoader
                 Lib.LoadLibrary(libPath);
                 PostInitHook();
             }
+            finally
+            {
+                LoadLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -174,7 +195,8 @@ namespace Joveler.DynLoader
         /// </summary>
         public void GlobalCleanup()
         {
-            lock (LoadLock)
+            LoadLock.EnterWriteLock();
+            try
             {
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);
@@ -183,6 +205,10 @@ namespace Joveler.DynLoader
                 Lib.Dispose();
                 Lib = null;
                 PostDisposeHook();
+            }
+            finally
+            {
+                LoadLock.ExitWriteLock();
             }
         }
         #endregion
