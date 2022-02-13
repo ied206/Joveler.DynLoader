@@ -4,7 +4,7 @@
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <PackageId>Joveler.DynLoader</PackageId>
     <Title>Joveler.DynLoader</Title>
-    <Version>2.1.0</Version>
+    <Version>2.1.1</Version>
     <Authors>Hajin Jang</Authors>
     <Company>Joveler</Company>
     <Description>Cross-platform native dynamic library loader for .NET.
@@ -15,7 +15,8 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Avoid calling virtual methods from constructors in DynLoaderBase.</PackageReleaseNotes>
+    <PackageReleaseNotes>- Official support for ARM64 macOS.
+- Unify .NET Framework 4.5.1 codebase and .NET Standard 2.0 codebase.</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <!-- PackageReference -->
