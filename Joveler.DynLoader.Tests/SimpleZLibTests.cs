@@ -36,7 +36,7 @@ namespace Joveler.DynLoader.Tests
         private static SimpleZLib[] _zlibs;
 
         [ClassInitialize]
-        public static void Init(TestContext ctx)
+        public static void Init(TestContext _)
         {
             _zlibs = new SimpleZLib[] { TestSetup.ExplicitZLib, TestSetup.ImplicitZLib };
             _zlibs = _zlibs.Where(z => z != null).ToArray();

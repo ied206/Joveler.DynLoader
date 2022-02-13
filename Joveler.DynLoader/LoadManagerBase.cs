@@ -24,7 +24,6 @@
 */
 
 using System;
-using System.Threading;
 
 namespace Joveler.DynLoader
 {
@@ -54,7 +53,7 @@ namespace Joveler.DynLoader
         #endregion
 
         #region Thread-Safe Load Lock Management
-        private readonly ReaderWriterLockSlim LoadLock = new ReaderWriterLockSlim();
+        private readonly object _loadLock = new object();
         /// <summary>
         /// Is the library loaded?
         /// </summary>
@@ -62,14 +61,9 @@ namespace Joveler.DynLoader
         {
             get
             {
-                LoadLock.EnterReadLock();
-                try
+                lock (_loadLock)
                 {
                     return Lib != null;
-                }
-                finally
-                {
-                    LoadLock.ExitReadLock();
                 }
             }
         }
@@ -79,15 +73,10 @@ namespace Joveler.DynLoader
         /// </summary>
         public void EnsureLoaded()
         {
-            LoadLock.EnterReadLock();
-            try
+            lock (_loadLock)
             {
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);
-            }
-            finally
-            {
-                LoadLock.ExitReadLock();
             }
         }
 
@@ -96,15 +85,10 @@ namespace Joveler.DynLoader
         /// </summary>
         public void EnsureNotLoaded()
         {
-            LoadLock.EnterReadLock();
-            try
+            lock (_loadLock)
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
-            }
-            finally
-            {
-                LoadLock.ExitReadLock();
             }
         }
         #endregion
@@ -173,8 +157,7 @@ namespace Joveler.DynLoader
         /// <param name="libPath"></param>
         public void GlobalInit(string libPath)
         {
-            LoadLock.EnterWriteLock();
-            try
+            lock (_loadLock)
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
@@ -184,10 +167,6 @@ namespace Joveler.DynLoader
                 Lib.LoadLibrary(libPath);
                 PostInitHook();
             }
-            finally
-            {
-                LoadLock.ExitWriteLock();
-            }
         }
 
         /// <summary>
@@ -195,8 +174,7 @@ namespace Joveler.DynLoader
         /// </summary>
         public void GlobalCleanup()
         {
-            LoadLock.EnterWriteLock();
-            try
+            lock (_loadLock)
             {
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);
@@ -205,10 +183,6 @@ namespace Joveler.DynLoader
                 Lib.Dispose();
                 Lib = null;
                 PostDisposeHook();
-            }
-            finally
-            {
-                LoadLock.ExitWriteLock();
             }
         }
         #endregion

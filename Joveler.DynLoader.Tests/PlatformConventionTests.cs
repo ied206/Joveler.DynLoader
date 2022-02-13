@@ -25,7 +25,6 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -167,14 +166,14 @@ namespace Joveler.DynLoader.Tests
 
                     // StringToHGlobalAuto
                     IntPtr fromUniPtr = defaultInstance.StringToHGlobalAuto(str);
-                    try 
+                    try
                     {
                         fromUniStr = Marshal.PtrToStringUni(fromUniPtr);
                         Assert.IsTrue(str.Equals(fromUniStr, StringComparison.Ordinal));
-                    } 
-                    finally 
-                    { 
-                        Marshal.FreeHGlobal(fromUniPtr); 
+                    }
+                    finally
+                    {
+                        Marshal.FreeHGlobal(fromUniPtr);
                     }
                     IntPtr fromAnsiPtr = customInstance.StringToHGlobalAuto(str);
                     try
@@ -267,7 +266,7 @@ namespace Joveler.DynLoader.Tests
                 Marshal.FreeHGlobal(ansiUtf8Ptr);
                 Marshal.FreeHGlobal(utf16Ptr);
             }
-            
+
         }
         #endregion
     }

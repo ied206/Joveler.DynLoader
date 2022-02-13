@@ -121,7 +121,7 @@ namespace Joveler.DynLoader.Tests
             ExplicitZLib = new SimpleZLib();
             ExplicitZLib.LoadLibrary(PackagedZLibPath);
             if (implicitLoadZLib)
-            { 
+            {
                 ImplicitZLib = new SimpleZLib();
                 ImplicitZLib.LoadLibrary();
             }
@@ -129,7 +129,7 @@ namespace Joveler.DynLoader.Tests
             ExplicitMagic = new SimpleFileMagic();
             ExplicitMagic.LoadLibrary(PackagedMagicPath);
             if (implicitLoadMagic)
-            { 
+            {
                 ImplicitMagic = new SimpleFileMagic();
                 ImplicitMagic.LoadLibrary();
             }
