@@ -33,7 +33,6 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class TestSetup
     {
-        public static string BaseDir { get; private set; }
         public static string SampleDir { get; private set; }
         public static string PackagedZLibPath { get; private set; }
         public static SimpleZLib ExplicitZLib { get; private set; }
@@ -47,8 +46,11 @@ namespace Joveler.DynLoader.Tests
         [AssemblyInitialize]
         public static void AssemblyInitalize(TestContext ctx)
         {
-            BaseDir = Path.GetFullPath(Path.Combine(TestHelper.GetProgramAbsolutePath(), "..", "..", ".."));
-            SampleDir = Path.Combine(BaseDir, "Samples");
+#if NETFRAMEWORK
+            string libBaseDir = Path.GetFullPath(TestHelper.GetProgramAbsolutePath());
+#else
+            string libBaseDir = Path.GetFullPath(Path.Combine(TestHelper.GetProgramAbsolutePath(), "..", "..", ".."));
+#endif
 
             const string zlibDllName = "zlibwapi.dll";
             const string magicDllName = "libmagic-1.dll";
@@ -82,9 +84,9 @@ namespace Joveler.DynLoader.Tests
 
             string libDir;
 #if NETFRAMEWORK
-            libDir = arch;
+            libDir = Path.Combine(libBaseDir, arch);
 #elif NETCOREAPP
-            libDir = "runtimes";
+            libDir = Path.Combine(libBaseDir, "runtimes");
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 libDir = Path.Combine(libDir, "win-");
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -150,9 +152,9 @@ namespace Joveler.DynLoader.Tests
             ImplicitMagic?.Dispose();
             PlatformLib?.Dispose();
         }
-        #endregion
+#endregion
 
-        #region TestHelper
+#region TestHelper
         public class TestHelper
         {
             public static string GetProgramAbsolutePath()
@@ -163,6 +165,6 @@ namespace Joveler.DynLoader.Tests
                 return path;
             }
         }
-        #endregion
+#endregion
     }
 }
