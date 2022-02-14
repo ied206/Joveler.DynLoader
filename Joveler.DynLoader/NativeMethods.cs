@@ -26,11 +26,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Joveler.DynLoader
 {
-    [SuppressMessage("Globalization", "CA2101:Specify marshaling for P/Invoke string arguments")]
     internal class NativeMethods
     {
         #region Windows kernel32 API

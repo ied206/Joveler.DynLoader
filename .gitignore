@@ -360,3 +360,6 @@ healthchecksdb
 MigrationBackup/
 
 # End of https://www.gitignore.io/api/csharp
+
+# Visual Studio Code
+.vscode/

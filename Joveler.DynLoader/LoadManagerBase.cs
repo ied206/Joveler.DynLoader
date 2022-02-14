@@ -53,15 +53,15 @@ namespace Joveler.DynLoader
         #endregion
 
         #region Thread-Safe Load Lock Management
-        private readonly object LoadLock = new object();
+        private readonly object _loadLock = new object();
         /// <summary>
-        /// 
+        /// Is the library loaded?
         /// </summary>
         public bool Loaded
         {
             get
             {
-                lock (LoadLock)
+                lock (_loadLock)
                 {
                     return Lib != null;
                 }
@@ -73,7 +73,7 @@ namespace Joveler.DynLoader
         /// </summary>
         public void EnsureLoaded()
         {
-            lock (LoadLock)
+            lock (_loadLock)
             {
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);
@@ -85,7 +85,7 @@ namespace Joveler.DynLoader
         /// </summary>
         public void EnsureNotLoaded()
         {
-            lock (LoadLock)
+            lock (_loadLock)
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
@@ -118,14 +118,14 @@ namespace Joveler.DynLoader
         /// Allocate other external resources before CreateLoader get called.
         /// </summary>
         /// <remarks>
-        /// Called in GlobalInit() and GlobalInit(string libPath).
+        /// Called in GlobalInit().
         /// </remarks>
         protected virtual void PreInitHook() { }
         /// <summary>
         /// Allocate other external resources after CreateLoader get called.
         /// </summary>
         /// <remarks>
-        /// Called in GlobalInit() and GlobalInit(string libPath).
+        /// Called in GlobalInit().
         /// </remarks>
         protected virtual void PostInitHook() { }
         /// <summary>
@@ -157,7 +157,7 @@ namespace Joveler.DynLoader
         /// <param name="libPath"></param>
         public void GlobalInit(string libPath)
         {
-            lock (LoadLock)
+            lock (_loadLock)
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
@@ -174,7 +174,7 @@ namespace Joveler.DynLoader
         /// </summary>
         public void GlobalCleanup()
         {
-            lock (LoadLock)
+            lock (_loadLock)
             {
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);

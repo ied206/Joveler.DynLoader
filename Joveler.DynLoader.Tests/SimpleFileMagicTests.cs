@@ -35,7 +35,7 @@ namespace Joveler.DynLoader.Tests
         private static SimpleFileMagic[] _magicLibs;
 
         [ClassInitialize]
-        public static void Init(TestContext ctx)
+        public static void Init(TestContext _)
         {
             _magicLibs = new SimpleFileMagic[] { TestSetup.ExplicitMagic, TestSetup.ImplicitMagic };
             _magicLibs = _magicLibs.Where(m => m != null).ToArray();

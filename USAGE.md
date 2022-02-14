@@ -113,9 +113,9 @@ When it fails to find a native library, [DllNotFoundException](https://docs.micr
 
 #### How a native library is loaded
 
-On .NET Core 3.x, DynLoader depends on .NET's own [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) class to load a native library. On .NET Framework and .NET Standard build, DynLoader calls platform-native APIs to load dynamic libraries at runtime. DynLoader tries its best to ensure consistent behavior regardless of which .NET platform you are using.
+On .NET Core 3.x or later, DynLoader depends on .NET's own [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) class to load a native library. On .NET Framework and .NET Standard build, DynLoader calls platform-native APIs to load dynamic libraries at runtime. DynLoader tries its best to ensure consistent behavior regardless of which .NET platform you are using.
 
-Under the hood, DynLoader calls [LoadLibraryEx](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) with `LOAD_WITH_ALTERED_SEARCH_PATH` flag on Windows, and [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) with `RTLD_NOW | RTLD_GLOBAL` on POSIX. [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) also use similar tactics.
+Under the hood, DynLoader calls [LoadLibraryEx](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw) with `LOAD_WITH_ALTERED_SEARCH_PATH` flag on Windows, and [dlopen](http://man7.org/linux/man-pages/man3/dlopen.3.html) with `RTLD_NOW | RTLD_GLOBAL` on POSIX. [NativeLibrary](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.nativelibrary.load?view=netcore-3.1) also uses similar tactics.
 
 DynLoader follows the OS's library resolving order. On Windows, it follows [alternative library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order#alternate-search-order-for-desktop-applications). On POSIX, it follows the order explained on [dlopen manual](http://man7.org/linux/man-pages/man3/dlopen.3.html).
 
@@ -596,7 +596,7 @@ Similar to x64, these platforms are known to enforce one standardized calling co
 
 ### Pointer size (`size_t`)
 
-**Recommended Workaround**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .NET world. 
+**Recommended Workaround until .NET 6**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .NET world. 
 
 `size_t` has a different size per architecture. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64). It is troublesome in cross-platform P/Invoke, as no direct counterpart exists in .NET.
 
@@ -613,6 +613,20 @@ internal delegate UIntPtr LZ4F_getFrameInfo(
     FrameInfo frameInfoPtr,
     IntPtr srcCapacity,
     UIntPtr srcSizePtr); // size_t
+internal static LZ4F_getFrameInfo GetFrameInfo;
+```
+
+**Recommended Workaround since .NET 5**: Use `nuint` in both P/Invoke signature and .NET world.
+
+C\# 9.0 or later supports [`nint` and `nuint`](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/nint-nuint), which are sized after platform native integer size. Internally they are represented with `IntPtr` and `UIntPtr`. 
+
+```csharp
+[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+internal delegate UIntPtr LZ4F_getFrameInfo(
+    IntPtr dctx,
+    FrameInfo frameInfoPtr,
+    IntPtr srcCapacity,
+    nuint srcSizePtr);
 internal static LZ4F_getFrameInfo GetFrameInfo;
 ```
 

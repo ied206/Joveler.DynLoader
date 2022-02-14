@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Joveler.DynLoader.Tests
+﻿namespace Joveler.DynLoader.Tests
 {
     public class SimpleZLibManager : LoadManagerBase<SimpleZLib>
     {

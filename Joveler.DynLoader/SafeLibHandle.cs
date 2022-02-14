@@ -24,7 +24,9 @@
 */
 
 using System;
+#if NETCOREAPP3_1
 using System.Reflection;
+#endif
 using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader
@@ -50,8 +52,8 @@ namespace Joveler.DynLoader
             //    - 2048: System32                       <-> LOAD_LIBRARY_SEARCH_SYSTEM32
             //    - 4096: SafeDirectories                <-> LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
             // 2. Flag smaller then 256 is loosely connected to LoadLibraryEx flags.
-            //    -  0, 8: LegacyBehavior                 <-> LOAD_WITH_ALTERED_SEARCH_PATH(?)
-            //    -  2, 8: AssemblyDirectory              <-> LOAD_WITH_ALTERED_SEARCH_PATH(?)
+            //    -  0, 8: LegacyBehavior                <-> LOAD_WITH_ALTERED_SEARCH_PATH(?)
+            //    -  2, 8: AssemblyDirectory             <-> LOAD_WITH_ALTERED_SEARCH_PATH(?)
             // 3. (Important, Undocumented?) From the function LocalLoadLibraryHelper():
             //    Flag smaller than 256 and larger than 256 look like mutually exclusive to each others.
             //    Flag larger then 256 has priority over smaller than 256.

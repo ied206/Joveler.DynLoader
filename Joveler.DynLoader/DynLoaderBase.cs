@@ -40,22 +40,8 @@ namespace Joveler.DynLoader
         /// Create an instance of DynLoaderBase and set platform conventions.
         /// </summary>
         protected DynLoaderBase()
-        { 
+        {
             // Set platform conventions.
-#if NETFRAMEWORK
-            UnicodeConvention = UnicodeConvention.Utf16;
-            PlatformLongSize = PlatformLongSize.Long32;
-            if (Environment.Is64BitProcess)
-            {
-                PlatformDataModel = PlatformDataModel.LLP64;
-                PlatformBitness = PlatformBitness.Bit64;
-            }
-            else
-            {
-                PlatformDataModel = PlatformDataModel.ILP32;
-                PlatformBitness = PlatformBitness.Bit32;
-            }
-#else
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 UnicodeConvention = UnicodeConvention.Utf16;
@@ -104,7 +90,6 @@ namespace Joveler.DynLoader
                     PlatformBitness = PlatformBitness.Bit64;
                     break;
             }
-#endif
         }
 
         /// <summary>
@@ -168,9 +153,7 @@ namespace Joveler.DynLoader
             // No need to check _hModule.IsInvalid here.
             _hModule = new NetSafeLibHandle(libPath);
 #else
-#if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
             {
                 // https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order
                 string libDir = Path.GetDirectoryName(libPath);
@@ -200,7 +183,6 @@ namespace Joveler.DynLoader
                         throw new DllNotFoundException($"{exceptMsg}: {errorMsg} (0x{errorCode:X8})");
                 }
             }
-#if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 _hModule = new LinuxSafeLibHandle(libPath);
@@ -235,7 +217,6 @@ namespace Joveler.DynLoader
             {
                 throw new PlatformNotSupportedException();
             }
-#endif
 #endif
 
             // Load functions
@@ -284,9 +265,7 @@ namespace Joveler.DynLoader
 #if NETCOREAPP3_1
             funcPtr = NativeLibrary.GetExport(_hModule.DangerousGetHandle(), funcSymbol);
 #else
-#if !NETFRAMEWORK
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
             {
                 funcPtr = NativeMethods.Win32.GetProcAddress(_hModule, funcSymbol);
 
@@ -295,7 +274,6 @@ namespace Joveler.DynLoader
                 if (funcPtr == IntPtr.Zero)
                     throw new EntryPointNotFoundException($"Unable to find an entry point named '{funcSymbol}' in DLL.", new Win32Exception());
             }
-#if !NETFRAMEWORK
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
@@ -332,7 +310,6 @@ namespace Joveler.DynLoader
             {
                 throw new PlatformNotSupportedException();
             }
-#endif
 #endif
 
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
