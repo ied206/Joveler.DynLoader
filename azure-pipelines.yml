@@ -47,9 +47,15 @@ steps:
   inputs:
     command: custom
     custom: tool
-    arguments: install --tool-path tools dotnet-reportgenerator-globaltool
-- script: tools/reportgenerator -reports:$(Agent.TempDirectory)/**/coverage.cobertura.xml -targetdir:"$(Build.ArtifactStagingDirectory)/coverlet" -reporttypes:"Cobertura" -verbosity:"Verbose"
+    arguments: install --global dotnet-reportgenerator-globaltool
+- script: reportgenerator -reports:$(Agent.TempDirectory)/**/coverage.cobertura.xml -targetdir:"$(Build.ArtifactStagingDirectory)/coverlet" -reporttypes:"Cobertura" -verbosity:"Verbose"
   displayName: Merge Code Coverage Reports
+- task: DotNetCoreCLI@2
+  displayName: 'Run Tests'
+  inputs:
+    command: 'test'
+    projects: '**/*.Tests/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --logger="console;verbosity=detailed" --collect:"XPlat Code Coverage" --settings:"$(Build.SourcesDirectory)/coverlet.runsettings"'
 - task: PublishCodeCoverageResults@1
   displayName: 'Publish Code Coverage Report'
   inputs:
