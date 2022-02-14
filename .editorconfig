@@ -1,0 +1,10 @@
+﻿[*.cs]
+
+# IDE0066: switch 문을 식으로 변환
+dotnet_diagnostic.IDE0066.severity = silent
+
+# IDE0063: 간단한 'using' 문 사용
+dotnet_diagnostic.IDE0063.severity = silent
+
+# IDE0060: 사용하지 않는 매개 변수를 제거하세요.
+dotnet_diagnostic.IDE0060.severity = suggestion
