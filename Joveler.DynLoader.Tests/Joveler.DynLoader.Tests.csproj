@@ -1,10 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-   <!-- Windowws x86 & x64 -->
-    <TargetFrameworks>net48;net6.0</TargetFrameworks>
-    <!-- Windowws ARM64 -->
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT' and '$(PROCESSOR_ARCHITECTURE)' == 'ARM64'">net6.0</TargetFrameworks>
+   <!-- Windowws -->
+    <TargetFrameworks>net481;net6.0</TargetFrameworks>
     <!-- POSIX -->
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net6.0</TargetFrameworks>
 
@@ -19,13 +17,13 @@
   </PropertyGroup>
     
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="3.1.2">
+    <PackageReference Include="coverlet.collector" Version="3.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
-    <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,14 +46,18 @@
     </Content>
   </ItemGroup>
 
-  <!-- Native Library for .NET Framework 4.8 -->
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net48' ">
+  <!-- Native Library for .NET Framework 4.8.1 -->
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net481' ">
     <None Include="runtimes\win-x86\native\*.dll">
       <Link>x86\%(FileName)%(Extension)</Link> <!-- Project Reference -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="runtimes\win-x64\native\*.dll">
       <Link>x64\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\win-arm64\native\*.dll">
+      <Link>arm64\%(FileName)%(Extension)</Link> <!-- Project Reference -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
