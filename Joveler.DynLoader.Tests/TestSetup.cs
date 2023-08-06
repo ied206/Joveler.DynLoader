@@ -152,9 +152,9 @@ namespace Joveler.DynLoader.Tests
             ImplicitMagic?.Dispose();
             PlatformLib?.Dispose();
         }
-#endregion
+        #endregion
 
-#region TestHelper
+        #region TestHelper
         public class TestHelper
         {
             public static string GetProgramAbsolutePath()
@@ -165,6 +165,6 @@ namespace Joveler.DynLoader.Tests
                 return path;
             }
         }
-#endregion
+        #endregion
     }
 }

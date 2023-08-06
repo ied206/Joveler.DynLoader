@@ -1,27 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net462;netstandard2.0;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net46;netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <PackageId>Joveler.DynLoader</PackageId>
     <Title>Joveler.DynLoader</Title>
-    <Version>2.1.1</Version>
+    <Version>2.2.0</Version>
     <Authors>Hajin Jang</Authors>
     <Company>Joveler</Company>
     <Description>Cross-platform native dynamic library loader for .NET.
 Provides advanced P/Invoke functionality using NativeLibrary, LoadLibrary and libdl.
 Supports Windows, Linux, and macOS.</Description>
-    <Copyright>Copyright (C) 2019-2022 Hajin Jang</Copyright>
+    <Copyright>Copyright (C) 2019-2023 Hajin Jang</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Official support for ARM64 macOS.
-- Unify .NET Framework 4.5.1 codebase and .NET Standard 2.0 codebase.</PackageReleaseNotes>
+    <PackageReleaseNotes>- Allow passing arbitrary objects to GlobalInit().</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <!-- PackageReference -->
   <ItemGroup>
-    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" Condition=" '$(TargetFramework)' == 'net462' " />
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" Condition=" '$(TargetFramework)' == 'net46' " />
   </ItemGroup>
    <!-- NuGet Pacakge -->
   <ItemGroup>
