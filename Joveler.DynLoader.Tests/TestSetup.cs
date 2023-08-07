@@ -27,6 +27,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Joveler.DynLoader.Tests
 {
@@ -172,6 +173,17 @@ namespace Joveler.DynLoader.Tests
                     path = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 return path;
             }
+        }
+        #endregion
+
+        #region LogEnvironment
+        [TestMethod]
+        public void LogEnvironment()
+        {
+            StringBuilder b = new StringBuilder();
+            b.AppendLine($"OS = {RuntimeInformation.OSDescription} {RuntimeInformation.OSArchitecture}");
+            b.AppendLine($"Dotnet Runtime = {RuntimeInformation.FrameworkDescription} {RuntimeInformation.ProcessArchitecture}");
+            Console.WriteLine(b.ToString());
         }
         #endregion
     }
