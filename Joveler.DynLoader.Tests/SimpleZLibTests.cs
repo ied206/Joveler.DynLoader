@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019-2021 Hajin Jang
+    Copyright (C) 2019-2023 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -38,7 +38,7 @@ namespace Joveler.DynLoader.Tests
         [ClassInitialize]
         public static void Init(TestContext _)
         {
-            _zlibs = new SimpleZLib[] { TestSetup.ExplicitZLib, TestSetup.ImplicitZLib };
+            _zlibs = new SimpleZLib[] { TestSetup.ExplicitStdcallZLib, TestSetup.ExplicitCdeclZLib, TestSetup.ImplicitZLib };
             _zlibs = _zlibs.Where(z => z != null).ToArray();
         }
 
@@ -105,9 +105,9 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void CreateDispose()
+        public void StdcallCreateDispose()
         {
-            string libPath = TestSetup.PackagedZLibPath;
+            string libPath = TestSetup.PackagedZLibPathStdcall;
             using (SimpleZLib zlib = new SimpleZLib())
             {
                 zlib.LoadLibrary(libPath);
@@ -116,17 +116,43 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void Manager()
+        public void CdeclCreateDispose()
         {
-            string libPath = TestSetup.PackagedZLibPath;
+            string libPath = TestSetup.PackagedZLibPathCdecl;
+            using (SimpleZLib zlib = new SimpleZLib())
+            {
+                zlib.LoadLibrary(libPath);
+                zlib.ZLibVersion();
+            }
+        }
 
+        [TestMethod]
+        public void StdcallManager()
+        {
+            string libPath = TestSetup.PackagedZLibPathStdcall;
+            ManagerTemplate(libPath, true);
+        }
+
+        [TestMethod]
+        public void CdeclManager()
+        {
+            string libPath = TestSetup.PackagedZLibPathCdecl;
+            ManagerTemplate(libPath, false);
+        }
+
+        private void ManagerTemplate(string libPath, bool isWindowsStdcall)
+        {
             SimpleZLibManager manager = new SimpleZLibManager();
+            SimpleZLibLoadData loadData = new SimpleZLibLoadData()
+            {
+                IsWindowsStdcall = isWindowsStdcall,
+            };
 
             bool dupInitGuard = false;
-            manager.GlobalInit(libPath);
+            manager.GlobalInit(libPath, loadData);
             try
             {
-                manager.GlobalInit();
+                manager.GlobalInit(loadData);
             }
             catch (InvalidOperationException)
             {
@@ -134,7 +160,14 @@ namespace Joveler.DynLoader.Tests
             }
             Assert.IsTrue(dupInitGuard);
 
-            manager.Lib.ZLibVersion();
+            Console.WriteLine(manager.Lib.ZLibVersion());
+            Console.WriteLine($"UnknownRawPtr = 0x{manager.Lib.UnknownRawPtr:X8}");
+            Console.WriteLine($"DeflateRawPtr = 0x{manager.Lib.DeflateRawPtr:X8}");
+
+            Assert.IsFalse(manager.Lib.HasUnknownSymbol);
+            Assert.IsTrue(manager.Lib.HasCrc32Symbol);
+            Assert.AreEqual(IntPtr.Zero, manager.Lib.UnknownRawPtr);
+            Assert.AreNotEqual(IntPtr.Zero, manager.Lib.DeflateRawPtr);
 
             bool dupCleanGuard = false;
             manager.GlobalCleanup();

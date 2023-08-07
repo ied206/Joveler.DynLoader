@@ -45,6 +45,12 @@ The library provides advanced p/invoke functionality of C functions using [Nativ
 | Linux    | NativeLibrary, libdl         | x64, armhf, arm64 |
 | macOS    | NativeLibrary, libdl         | x64, arm64        |
 
+### Helps needed!
+
+- Android support and testing
+    - While I guess Android support on .NET Standard 2.0 target may be similar to Linux, I do not have any time to test on Android right now.
+    - On .NET/.NET Core, availibity of the `NativeLibrary` on Android has not been tested yet.
+
 ## Usage
 
 See [USAGE.md](./USAGE.md).

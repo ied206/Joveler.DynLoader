@@ -33,6 +33,7 @@
                         HasTrailingSlash('$(MSBuildThisFileDirectory)')">
     <InteropLibFiles_x86 Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x86\native\*.dll" />
     <InteropLibFiles_x64 Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\*.dll" />
+    <InteropLibFiles_arm64 Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-arm64\native\*.dll" />
   </ItemGroup>
   <ItemGroup Condition="'$(ExcludeInteropMgc)' != 'true' And 
                         '$(MSBuildThisFileDirectory)' != '' And
@@ -53,6 +54,10 @@
     </None>
     <None Condition="'@(InteropLibFiles_x64)' != ''" Include="@(InteropLibFiles_x64)">
       <Link>x64\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Condition="'@(InteropLibFiles_arm64)' != ''" Include="@(InteropLibFiles_arm64)">
+      <Link>arm64\%(FileName)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -89,6 +94,16 @@
     <Copy SourceFiles="@(InteropLibFiles_x64)"
           DestinationFiles="@(InteropLibFiles_x64 -> '$(OutDir)x64\%(Filename)%(Extension)')" />
   </Target>
+  <Target Name="CopyInteropLibFiles_arm64"
+          Condition="'$(CopyInteropLibFiles_arm64)' != 'false' And
+                      '$(OutDir)' != '' And
+                      HasTrailingSlash('$(OutDir)') And
+                      Exists('$(OutDir)')"
+          Inputs="@(InteropLibFiles_arm64)"
+          Outputs="@(InteropLibFiles_arm64 -> '$(OutDir)x86\%(Filename)%(Extension)')">
+    <Copy SourceFiles="@(InteropLibFiles_arm64)"
+          DestinationFiles="@(InteropLibFiles_arm64 -> '$(OutDir)arm64\%(Filename)%(Extension)')" />
+  </Target>
   <Target Name="CopyInteropMgcFiles"
           Condition="'$(CopyInteropMgcFiles)' != 'false' And
                       '$(OutDir)' != '' And
@@ -118,6 +133,13 @@
                      Exists('$(OutDir)')">
     <Delete Files="@(InteropLibFiles_x64 -> '$(OutDir)x64\%(Filename)%(Extension)')" />
   </Target>
+  <Target Name="CleanInteropLibFiles_arm64"
+          Condition="'$(CleanInteropLibFiles_arm64)' != 'false' And
+                     '$(OutDir)' != '' And
+                     HasTrailingSlash('$(OutDir)') And
+                     Exists('$(OutDir)')">
+    <Delete Files="@(InteropLibFiles_arm64 -> '$(OutDir)arm64\%(Filename)%(Extension)')" />
+  </Target>
   <Target Name="CleanInteropMgcFiles"
           Condition="'$(CleanInteropMgcFiles)' != 'false' And
                      '$(OutDir)' != '' And
@@ -146,6 +168,14 @@
       </FilesForPackagingFromProject>
     </ItemGroup>
   </Target>
+  <Target Name="CollectInteropLibFiles_arm64"
+          Condition="'$(CollectInteropLibFiles_arm64)' != 'false'">
+    <ItemGroup>
+      <FilesForPackagingFromProject Include="@(InteropLibFiles_arm64)">
+        <DestinationRelativePath>bin\arm64\%(Filename)%(Extension)</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+    </ItemGroup>
+  </Target>
   <Target Name="CollectInteropMgcFiles"
           Condition="'$(CollectInteropMgcFiles)' != 'false'">
     <ItemGroup>
@@ -166,18 +196,21 @@
       $(PostBuildEventDependsOn);
       CopyInteropLibFiles_x86;
       CopyInteropLibFiles_x64;
+      CopyInteropLibFiles_arm4;
       CopyInteropMgcFiles;
     </PostBuildEventDependsOn>
     <BuildDependsOn>
       $(BuildDependsOn);
       CopyInteropLibFiles_x86;
       CopyInteropLibFiles_x64;
+      CopyInteropLibFiles_arm64;
       CopyInteropMgcFiles;
     </BuildDependsOn>
     <CleanDependsOn>
       $(CleanDependsOn);
       CleanInteropLibFiles_x86;
       CleanInteropLibFiles_x64;
+      CleanInteropLibFiles_arm64;
       CleanInteropMgcFiles;
     </CleanDependsOn>
   </PropertyGroup>
@@ -188,16 +221,11 @@
   ******************************************************************************
   -->
 
-  <PropertyGroup Condition="'$(VisualStudioVersion)' == '' Or
-                            '$(VisualStudioVersion)' == '10.0' Or
-                            '$(VisualStudioVersion)' == '11.0' Or
-                            '$(VisualStudioVersion)' == '12.0' Or
-                            '$(VisualStudioVersion)' == '14.0' Or
-                            '$(VisualStudioVersion)' == '15.0' Or
-                            '$(VisualStudioVersion)' == '16.0'">
+  <PropertyGroup>
     <PipelineCollectFilesPhaseDependsOn>
       CollectInteropLibFiles_x86;
       CollectInteropLibFiles_x64;
+      CollectInteropLibFiles_arm64;
       CollectInteropMgcFiles;
       $(PipelineCollectFilesPhaseDependsOn);
     </PipelineCollectFilesPhaseDependsOn>

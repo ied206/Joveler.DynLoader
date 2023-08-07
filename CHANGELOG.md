@@ -2,9 +2,26 @@
 
 ## v2.x
 
+### v2.2.0
+
+Released on 2023-08-08.
+
+- Allow passing a custom object when loading a native library.
+    - Add `LoadManagerBase.GlobalInit()` overloadings with custom object parameter.
+    - Add `DynLoaderBase.LoadLibrary()` overloadings with custom object parameter.
+    - Add virtual method `DynLoaderBase.HandleLoadData()`.
+    - Add helper method `DynLoaderBase.HasFuncSymbol()`.
+
+### v2.1.1
+
+Released on 2022-02-15.
+
+- Official support for ARM64 macOS.
+- Unify .NET Framework 4.5.1 codebase and .NET Standard 2.0 codebase.
+
 ### v2.1.0
 
-Release in 2021.04.05.
+Released on 2021-04-05.
 
 - Avoid calling virtual methods from constructors in `DynLoaderBase`.
     - Users must call `DynLoaderBase.LoadLibrary` after creating an instance.
@@ -14,7 +31,7 @@ Release in 2021.04.05.
 
 ### v2.0.0
 
-Released in 2020.04.24.
+Released on 2020-04-24.
 
 - Use `NativeLoader` on .NET Core 3.x build.
 - `DynLoaderBase` now throws [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception) and [EntryPointNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.entrypointnotfoundexception) instead of [ArgumentException](https://docs.microsoft.com/en-US/dotnet/api/system.argumentexception) and [InvalidOperationException](https://docs.microsoft.com/en-us/dotnet/api/system.invalidoperationexception). 
@@ -30,31 +47,31 @@ Released in 2020.04.24.
 
 ### v1.3.0
 
-Released in 2020.02.29.
+Released on 2020-02-29.
 
 - Add `size_t` helper methods.
 - Rename AutoStringToCoTaskMem() into StringToCoTaskMemAuto().
 
 ### v1.2.1
 
-Released in 2019.10.31.
+Released on 2019-10-31.
 
 - Address `libdl.so` naming issue for CentOS ([#1](https://github.com/ied206/Joveler.DynLoader/issues/1))
 
 ### v1.2.0
 
-Released in 2019.10.16.
+Released on 2019-10-16.
 
 - Add platform convention helper properties and methods
 
 ### v1.1.0
 
-Released in 2019.10.15.
+Released on 2019-10-15.
 
 - Add `LoadManagerBase` abstract class
 
 ### v1.0.0
 
-Released in 2019.10.15.
+Released on 2019-10-15.
 
 - The initial release of the cross-platform native dynamic library loader for .NET.

@@ -1,4 +1,9 @@
-﻿namespace Joveler.DynLoader.Tests
+﻿/*
+    Written by Hajin Jang.
+    Released under public domain.
+*/
+
+namespace Joveler.DynLoader.Tests
 {
     public class SimpleZLibManager : LoadManagerBase<SimpleZLib>
     {

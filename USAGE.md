@@ -2,16 +2,16 @@
 
 `Joveler.DynLoader` is a cross-platform native dynamic library loader for .NET. It allows developers to create a wrapper of native C libraries easily.
 
-The library provide two abstract class, [DynLoaderBase](#DynLoaderBase) and [LoadManagerBase](#LoadManagerBase).
+The library provides two abstract class, [DynLoaderBase](#DynLoaderBase) and [LoadManagerBase](#LoadManagerBase).
 
-Please also read [P/Invoke Tips from DynLoader](#Tips) for your easy P/Invoke life.
+Please also read [P/Invoke Tips from DynLoader](#Tips) for easy P/Invoke life.
 
 ## Getting Started
 
-To use DynLoader, you should know about two classes.
+To use DynLoader, you should learn about two main classes.
 
-| Class        | 역할 |
-|--------------|------|
+| Class        | Description |
+|--------------|-------------|
 | [DynLoaderBase](#DynLoaderBase) | Scaffold of a native library wrapper. |
 | [LoadManagerBase](#LoadManagerBase) | Manages `DynLoaderBase` singleton instance. |
 
@@ -37,7 +37,7 @@ Follow these steps to create a wrapper of a native library.
 
 Follow these steps to use a wrapper library.
 
-1. Make an interface which calls `LoadManagerBase.GlobalInit()`.
+1. Make an interface that calls `LoadManagerBase.GlobalInit()`.
     ```csharp
     public class Magic : IDisposable
     {
@@ -48,7 +48,8 @@ Follow these steps to use a wrapper library.
         public static void GlobalCleanup() => Manager.GlobalCleanup();
     }
     ```
-1. Call `GlobalInit()` to load native functions.
+1. Call one of `GlobalInit` functions to load native functions.
+    - You may call `GlobalInit(object loadData)` or `GlobalInit(string libPath, object loadData)` instead to pass a custom object. It would be handled by `DynLoaderBase<T>.HandleLoadData()` later.
 1. Call delegate instances to call corresponding native functions.
 
 ## DynLoaderBase
@@ -59,14 +60,14 @@ Inherit [DynLoaderBase](./Joveler.DynLoader/DynLoaderBase.cs) to create a wrappe
 
 **Example Files**
 
-[Joveler.DynLoader.Tests](./Joveler.DynLoader.Tests) contains simplified wrappers of [zlib](https://www.zlib.net) and [libmagic](http://www.darwinsys.com/file/) as examples. Freely adapt them as you need, they are released as public domain.
+[Joveler.DynLoader.Tests](./Joveler.DynLoader.Tests) contains simplified wrappers of [zlib](https://www.zlib.net) and [libmagic](http://www.darwinsys.com/file/) as examples. Freely adapt them as you need, as they are released as public domain.
 
 - zlib : [SimpleZLib.cs](./Joveler.DynLoader.Tests/SimpleZLib.cs)
 - magic : [SimpleFileMagic.cs](./Joveler.DynLoader.Tests/SimpleFileMagic.cs)
 
 The test project also showcases per-platform delegate declarations. Read [SimplePlatform.cs](./Joveler.DynLoader.Tests/SimplePlatform.cs).
 
-### Delegate of native functions
+### Delegate native functions
 
 You need to provide a prototype of the native functions, similar to traditional [DllImport P/Invoke](https://docs.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke).
 
@@ -105,9 +106,37 @@ public SimpleFileMagic() : base() { }
 
 ### LoadLibrary
 
-After creating an instance of a derived class, make sure to call `LoadLibrary()` to load a native library. After then you can invoke extern native functions via delegate instances.
+```csharp
+/// <summary>
+/// Load a native dynamic library from a path of `DefaultLibFileName`.
+/// </summary>
+public void LoadLibrary();
+/// <summary>
+/// Load a native dynamic library from a given path.
+/// </summary>
+/// <param name="libPath">A native library file to load.</param>
+public void LoadLibrary(string libPath);
+/// <summary>
+/// Load a native dynamic library from a path of `DefaultLibFileName`, with custom object.
+/// </summary>
+/// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+public void LoadLibrary(object loadData);
+/// <summary>
+/// Load a native dynamic library from a given path, with custom object.
+/// </summary>
+/// <param name="libPath">A native library file to load.</param>
+/// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+public void LoadLibrary(string libPath, object loadData);
+```
 
-`LoadLibrary(string libPath)` loads that specific native library. The parameterless version loads the default native library from the base system. 
+After creating an instance of a derived class, make sure to call `LoadLibrary()` to load a native library. After that, you can invoke extern native functions via delegate instances.
+
+| Signature       | Description |
+|-----------------|-------------|
+| `LoadLibrary()` | Loads the default native library from the base system. Works only if `DefaultLibFileName` is not null. |
+| `LoadLibrary(string libPath)` | Loads specific native library from the path. |
+| `LoadLibrary(object loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary()`. |
+| `LoadLibrary(string libPath, object loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary(string libPath)`. |
 
 When it fails to find a native library, [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception?view=netcore-3.1) is thrown. 
 
@@ -119,11 +148,11 @@ Under the hood, DynLoader calls [LoadLibraryEx](https://docs.microsoft.com/en-us
 
 DynLoader follows the OS's library resolving order. On Windows, it follows [alternative library search order](https://docs.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order#alternate-search-order-for-desktop-applications). On POSIX, it follows the order explained on [dlopen manual](http://man7.org/linux/man-pages/man3/dlopen.3.html).
 
-### Methods and property to override
+### Methods and properties to override
 
 ```csharp
 /// <summary>
-/// Default filename of the native libary to use. Override only if the target platform ships with the native library.
+/// Default filename of the native library to use. Override only if the target platform ships with the native library.
 /// </summary>
 /// <remarks>
 /// Throw PlatformNotSupportedException optionally when the library is included only in some of the target platforms.
@@ -138,13 +167,18 @@ protected abstract void LoadFunctions();
 /// Clear pointer of native functions. Called in Dispose(bool).
 /// </summary>
 protected abstract void ResetFunctions();
+/// <summary>
+/// Handle custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
+/// </summary>
+/// <param name="data">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+protected virtual void HandleLoadData(object data) { }
 ```
 
 #### LoadFunctions()
 
 You must override `LoadFunctions()` with a code loading delegate of native functions. 
 
-Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function symbol name (`funcSymbol`) to get a C# delegate of a symbol. Assign return value as a delegate instance you previously declared. 
+Call `GetFuncPtr<T>(string funcSymbol)` with a delegate type (`T`) and function symbol name (`funcSymbol`) to get a C# delegate of a symbol. Assign the return value as a delegate instance you previously declared. 
 
 The parameterless `GetFuncPtr<T>()` is a slow but more convenient variant. It uses reflection (`typeof(T).Name`) to get a real name of `T` at runtime. If your target platform restricts the use of reflection, do not use it.
 
@@ -167,9 +201,9 @@ protected override void LoadFunctions()
 
 #### ResetFunctions()
 
-Override `ResetFunctions()` when you want to explicitly clear native resources and delegate assignments.
+Always override `ResetFunctions()` with a code clearing native resources and delegate assignments.
 
-Usually, the override of this method is not required, as the library handle is automatically cleared when the instance is disposed of. But if you need to clear delegate assignments manually, you have to implement it.
+In most platforms, simply assigning `null` to function pointers is suffice.
 
 #### DefaultLibFileName
 
@@ -189,6 +223,63 @@ protected override string DefaultLibFileName
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return "libz.dylib";
         throw new PlatformNotSupportedException();
+    }
+}
+```
+
+#### HandleLoadData()
+
+Override `HandleLoadData()` to put a business logic to handle custom object which has been passed to `LoadManagerBase<T>.GlobalInit()`.
+
+This functions is called after the `LibPath` property is set to native library path, and before `LoadFunctions()` is called.
+
+You are able to access the results of `HandleLoadData()` from `LoadFunctions()`.
+
+For example, you may need to override it to support both `cdecl` and `stdcall` ABIs of the same library.
+
+**Example**
+
+```csharp
+public class SimpleZLibLoadData
+{
+    public bool IsWindowsStdcall { get; set; } = true;
+}
+```
+
+```csharp
+private bool _isWindowsStdcall = true;
+
+protected override void HandleLoadData(object data)
+{
+    if (!(data is SimpleZLibLoadData loadData))
+        return;
+
+    _isWindowsStdcall = loadData.IsWindowsStdcall;
+}
+
+internal class Stdcall
+{
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
+    public adler32 Adler32;
+}
+
+internal class Cdecl
+{
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
+    public adler32 Adler32;
+}
+
+protected override void LoadFunctions()
+{
+    if (_isWindowsStdcall)
+    {
+        _stdcall.Adler32 = GetFuncPtr<Stdcall.adler32>(nameof(Stdcall.adler32));
+    }
+    else
+    {
+        _cdecl.Adler32 = GetFuncPtr<Cdecl.adler32>(nameof(Cdecl.adler32));
     }
 }
 ```
@@ -222,7 +313,7 @@ public enum PlatformDataModel
     ILP32 = 2,
 }
 /// <summary>
-/// Size of the long type of the platform.
+/// Size of the long type of platform.
 /// </summary>
 public enum PlatformLongSize
 {
@@ -255,7 +346,7 @@ public enum PlatformBitness
 /// Default unicode encoding convention of the platform. 
 /// </summary>
 /// <remarks>
-/// Some native libraries does not follow default unicode encoding convention of the platform, so be careful.
+/// Some native libraries do not follow the default Unicode encoding convention of the platform, be careful.
 /// </remarks>
 public enum UnicodeConvention
 {
@@ -278,7 +369,7 @@ public PlatformUnicodeConvention PlatformUnicodeConvention { get; }
 public Encoding PlatformUnicodeEncoding { get; }
 
 /// <summary>
-/// Convert buffer pointer to string following platform's default encoding convention. Wrapper of Marshal.PtrToString*().
+/// Convert buffer pointer to string following the platform's default encoding convention. The wrapper of Marshal.PtrToString*().
 /// </summary>
 /// <remarks>
 /// Marshal.PtrToStringAnsi() use UTF-8 on POSIX.
@@ -288,7 +379,7 @@ public Encoding PlatformUnicodeEncoding { get; }
 public string PtrToStringAuto(IntPtr ptr);
 /// <summary>
 /// <summary>
-/// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToHGlobal*().
+/// Convert string to buffer pointer following the platform's default encoding convention. The wrapper of Marshal.StringToHGlobal*().
 /// </summary>
 /// <remarks>
 /// Marshal.StringToHGlobalAnsi() use UTF-8 on POSIX.
@@ -296,10 +387,10 @@ public string PtrToStringAuto(IntPtr ptr);
 /// <param name="str">String to convert</param>
 /// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with return value to prevent memory leak.</returns>
 public IntPtr StringToHGlobalAuto(string str);
-/// Convert string to buffer pointer following platform's default encoding convention. Wrapper of Marshal.StringToCoTaskMem*().
+/// Convert string to buffer pointer following the platform's default encoding convention. The wrapper of Marshal.StringToCoTaskMem*().
 /// </summary>
 /// <remarks>
-/// Marshal.StringToCoTaskMemAnsi() use UTF-8 on POSIX.
+/// Marshal.StringToCoTaskMemAnsi() uses UTF-8 on POSIX.
 /// </remarks>
 /// <param name="str">String to convert</param>
 /// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with return value to prevent memory leak.</returns>
@@ -324,9 +415,9 @@ In C language, the size of a data type may change per target platform. It is cal
 | `PlatformBitness`     | `Bit32` | `Bit64` |
 | Size of the `UIntPtr` | 32bit   | 64bit   |
 
-It is useful when to have to write different code per bitness or handle marshaling of `size_t`.
+It is useful when have to write different code per bitness or handle marshaling of `size_t`.
 
-`size_t` can be represented as `UIntPtr` in P/Invoke signatures. .NET make sure that `UIntPtr` does not store the value larger than the platform's bit size. For example, assigning `ulong.MaxValue` to `UIntPtr` on 32bit platforms invoke `OverflowException`.
+`size_t` can be represented as `UIntPtr` in P/Invoke signatures. .NET makes sure that `UIntPtr` does not store the value larger than the platform's bit size. For example, assigning `ulong.MaxValue` to `UIntPtr` on 32bit platforms invoke `OverflowException`.
 
 #### PlatformUnicodeConvention, PlatformUnicodeEncoding
 
@@ -337,9 +428,9 @@ Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM.
 | `UnicodeConvention` | `Utf16` | `Utf8` |
 | `UnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
 
-`string PtrToStringAuto(IntPtr ptr)`, `IntPtr StringToHGlobalAuto(string str)` and `IntPtr StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on value of `UnicodeConvention` property.
+`string PtrToStringAuto(IntPtr ptr)`, `IntPtr StringToHGlobalAuto(string str)` and `IntPtr StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on the value of the `UnicodeConvention` property.
 
-**WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is using. For example, some cross-platform libraries which originated from the POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite the `UnicodeConvention` value after the class was initialized.
+**WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is used. For example, some cross-platform libraries which originated from the POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite the `UnicodeConvention` value after the class was initialized.
 
 ### Disposable Pattern
 
@@ -347,7 +438,7 @@ The class implements [Disposable Pattern](https://docs.microsoft.com/en-us/dotne
 
 ## LoadManagerBase
 
-[LoadManagerBase](./Joveler.DynLoader/LoadManagerBase.cs) class provides a thread-safe way to manage `DynLoaderBase` singleton instance.
+[LoadManagerBase](./Joveler.DynLoader/LoadManagerBase.cs) class provides a thread-safe way to manage the `DynLoaderBase` singleton instance.
 
 ### Methods and properties to override
 
@@ -400,14 +491,14 @@ These hooks will be called before/after `CreateLoader()`/`Dispose()`. Implementi
 
 ```csharp
 /// <summary>
-/// Allocate other external resources before CreateLoader get called.
+/// Allocate other external resources before CreateLoader gets called.
 /// </summary>
 /// <remarks>
 /// Called in GlobalInit() and GlobalInit(string libPath).
 /// </remarks>
 protected virtual void PreInitHook() { }
 /// <summary>
-/// Allocate other external resources after CreateLoader get called.
+/// Allocate other external resources after CreateLoader gets called.
 /// </summary>
 /// <remarks>
 /// Called in GlobalInit() and GlobalInit(string libPath).
@@ -421,7 +512,7 @@ protected virtual void PostInitHook() { }
 /// </remarks>
 protected virtual void PreDisposeHook() { }
 /// <summary>
-/// Disallocate other external resources after disposing DynLoaderBase instance.
+/// Disallocate other external resources after disposing of DynLoaderBase instance.
 /// </summary>
 /// <remarks>
 /// Called in GlobalCleanup().
@@ -435,7 +526,7 @@ protected virtual void PostDisposeHook() { }
 
 When your app depends on user libraries, not a Win32 API, or a system call, you have to bundle the libraries yourself.
 
-#### 1) Set `Copy to Output Directory` property of native binaries.
+#### 1) Set the `Copy to Output Directory` property of native binaries.
 
 Add native library files into the project, and set `Copy to Output Directory` to `Copy if newer` in their property.
 
@@ -446,6 +537,9 @@ Add native library files into the project, and set `Copy to Output Directory` to
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
   <None Update="x86\7z.dll">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+  <None Update="arm64\7z.dll">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
 </ItemGroup>
@@ -477,7 +571,7 @@ This method does not work on application projects.
 
 For the .NET Framework NuGet package, write an MSBuild script to handle native libraries. 
 
-**Example**: Add MSBuild script [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/SampleScript.netfx.targets) to the project directory. Also add this line to .csproj:
+**Example**: Add MSBuild script [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/SampleScript.netfx.targets) to the project directory. Also, add this line to .csproj:
 ```xml
 <Import Project="$(MSBuildProjectDirectory)\SampleScript.netfx.targets" />
 ```
@@ -489,18 +583,22 @@ You can freely adapt [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/Samp
 This is the snippet extracted from the sample .csproj file.
 
 - (1) Use `Copy to Output Directory` for application build.
-- (2) Create standard NuGet package layout for .NET Core nupkg.
+- (2) Create a standard NuGet package layout for .NET Core nupkg.
 - (3) Use MSBuild scripts for .NET Framework nupkg.
 
 ```xml
-<!-- (Method 1) Native Library for .NET Framework 4.5.1 -->
-<ItemGroup Condition=" '$(TargetFramework)' == 'net451' ">
+<!-- (Method 1) Native Library for .NET Framework 4.6 -->
+<ItemGroup Condition=" '$(TargetFramework)' == 'net46' ">
     <None Include="runtimes\win-x86\native\*.dll">
         <Link>x86\%(FileName)%(Extension)</Link> <!-- Project Reference -->
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="runtimes\win-x64\native\*.dll">
         <Link>x64\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="runtimes\win-arm64\native\*.dll">
+        <Link>arm64\%(FileName)%(Extension)</Link> <!-- Project Reference -->
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 </ItemGroup>
@@ -534,6 +632,10 @@ This is the snippet extracted from the sample .csproj file.
         <Link>runtimes\osx-x64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="runtimes\osx-arm64\native\*.dylib">
+        <Link>runtimes\osx-arm64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 </ItemGroup>
 <!-- NuGet Pacakge -->
 <ItemGroup>
@@ -545,6 +647,7 @@ This is the snippet extracted from the sample .csproj file.
     <None Include="runtimes\linux-arm\native\*.so"   Pack="true" PackagePath="runtimes\linux-arm\native"/>
     <None Include="runtimes\linux-arm64\native\*.so" Pack="true" PackagePath="runtimes\linux-arm64\native"/>
     <None Include="runtimes\osx-x64\native\*.dylib"  Pack="true" PackagePath="runtimes\osx-x64\native"/>
+    <None Include="runtimes\osx-arm64\native\*.dylib"  Pack="true" PackagePath="runtimes\osx-arm64\native"/>
     <!-- (Method 3) Build Script for .NET Framework -->
     <None Include="Joveler.FileMagician.netfx.targets" Pack="true" PackagePath="build\net451\Joveler.FileMagician.targets"/>
 </ItemGroup>
@@ -556,14 +659,14 @@ Multiple calling conventions are used following the target OS and architecture.
 
 **Recommended Workaround**: Always set calling a convention for `x86`, as they are ignored in the other architectures.
 
-#### x86
+#### x86/i686
 
 On x86, you need to be cautious of calling conventions. 
 
 - Windows: Win32 APIs use stdcall, while the user libraries selectively use cdecl or stdcall.
 - Linux, macOS: Every function uses cdecl.
 
-Many libraries originated from the POSIX world often exclusively use cdecl. It is still valid on Windows when the library is cross-platform. In that case, specify `CallingConvention.Cdecl`.
+Many libraries originating from the POSIX world often exclusively use cdecl. It is still valid on Windows when the library is cross-platform. In that case, specify `CallingConvention.Cdecl`.
 
 ```csharp
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -575,13 +678,13 @@ Similarly, if you are writing a wrapper of Win32 APIs on Windows, specify `Calli
 [UnmanagedFunctionPointer(CallingConvention.StdCall)]
 ```
 
-Some cross-platform libraries use stdcall on Windows and cdecl on POSIX (e.g., zlib), however. In that case, specify `CallingConvention.Winapi`. stdcall is automatically used on Windows while the cdecl is used on POSIX.
+Some cross-platform libraries use stdcall on Windows and cdecl on POSIX (e.g., `zlibwapi.dll` build of zlib), however. In that case, specify `CallingConvention.Winapi`. stdcall is automatically used on Windows while the cdecl is used on POSIX.
 
 ```csharp
 [UnmanagedFunctionPointer(CallingConvention.Winapi)]
 ```
 
-#### x64
+#### x64/amd64
 
 On x64, every platform enforces using the standardized fastcall convention. So, in theory, you do not need to care about it.
 
@@ -600,7 +703,7 @@ Similar to x64, these platforms are known to enforce one standardized calling co
 
 `size_t` has a different size per architecture. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64). It is troublesome in cross-platform P/Invoke, as no direct counterpart exists in .NET.
 
-You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .NET runtime does not provide the direct mechanism, these struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
+You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uintptr) (or [IntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.intptr)) struct to handle this problem. While the .NET runtime does not provide the direct mechanism, this struct has the same size as the platform's pointer size. Thus, we can safely use `UIntPtr` as the C# equivalent of `size_t`. You must have to take caution, though, because we want to use `UIntPtr` as a value, not an address.
 
 I recommend using `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
 
@@ -622,7 +725,7 @@ C\# 9.0 or later supports [`nint` and `nuint`](https://docs.microsoft.com/en-us/
 
 ```csharp
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-internal delegate UIntPtr LZ4F_getFrameInfo(
+internal delegate nuint LZ4F_getFrameInfo(
     IntPtr dctx,
     FrameInfo frameInfoPtr,
     IntPtr srcCapacity,
@@ -634,9 +737,9 @@ internal static LZ4F_getFrameInfo GetFrameInfo;
 
 **Recommended Workaround**: If the native library use `long` in its APIs, declare two sets of delegates, the LP64 model for POSIX 64bit and LLP64 for the other.
 
-In 64bit, `long` can have different sizes per target OS and architecture. Windows use the LLP64 data model (long is 32bit) on 64bit arch, while the POSIX use LP64 (long is 64bit).
+In 64bit, `long` can have different sizes per target OS and architecture. Windows uses the LLP64 data model (long is 32bit) on 64bit arch, while the POSIX use LP64 (long is 64bit).
 
-If a native library uses `long` in the exported functions, there is no simple solution. You would have to prepare two sets of delegates, and make sure you assign and call the right delegate per target architecture and OS.
+If a native library uses `long` in the exported functions, there is no simple solution. You would have to prepare two sets of delegates and make sure you assign and call the right delegate per target architecture and OS.
 
 Some libraries with a long history (e.g., zlib) have this problem. Fortunately, many modern cross-platform libraries tend to use types of `<stdint.h>` or similar so that they can ensure stable type size across platforms. 
 
@@ -644,9 +747,9 @@ Some libraries with a long history (e.g., zlib) have this problem. Fortunately, 
 
 ### String encoding
 
-**Recommended Workaround**: Declare two sets of delegates, the UTF-16 model for POSIX 64bit and LLP64 for the other.
+**Recommended Workaround**: Use the `IntPtr` type, and convert it to/from a string in runtime with helper methods.
 
-Different platforms have different charset and encoding conventions, and native libraries often follow it.
+Different platforms have different charset and encoding conventions, and native libraries often follow them.
 
 - Windows: `UTF-16`, `ANSI`
 - POSIX: `UTF-8`
@@ -654,12 +757,17 @@ Different platforms have different charset and encoding conventions, and native 
 Look for which data type the library used for strings.
 
 - `char*`: `ANSI` on Windows and `UTF-8` on POSIX. Mostly used in POSIX libraries.
-- `wchar_t*`: `UTF-16` on Windows and `UTF-32`on POSIX. Windows libraries use it but rarely in POSIX libraries.
+- `wchar_t*`: `UTF-16` on Windows and `UTF-32` on POSIX. Windows libraries use it but rarely in POSIX libraries.
 - `tchar*`: `UTF-16` on Windows and `UTF-8` on POSIX. Windows libraries and some cross-platform POSIX libraries use it.
 
 Fortunately, you do not need to duplicate structs in most cases. Put `IntPtr` in place of a string field, then return string as a property using `DynLoaderBase.StringTo*Auto()` and `DynLoaderBase.PtrToStringAuto()` helper methods.
 
 **Example**
+
+This example shows two solutions:
+
+- Declaring two sets of delegates
+- Use `IntPtr` and convert them in runtime.
 
 ```csharp
 internal class Utf8d
