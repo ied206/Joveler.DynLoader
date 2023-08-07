@@ -40,6 +40,7 @@ namespace Joveler.DynLoader.Tests
 
         public bool HasUnknownSymbol { get; private set; } = true;
         public bool HasCrc32Symbol { get; private set; } = false;
+        public IntPtr UnknownRawPtr { get; private set; } = IntPtr.Zero;
         public IntPtr DeflateRawPtr { get; private set; } = IntPtr.Zero;
         #endregion
 
@@ -48,8 +49,8 @@ namespace Joveler.DynLoader.Tests
         internal Cdecl _cdecl = new Cdecl();
         #endregion
 
-        #region ParseCustomData
-        protected override void ParseLoadData(object data)
+        #region HandleCustomData
+        protected override void HandleLoadData(object data)
         {
             if (!(data is SimpleZLibLoadData loadData))
                 return;

@@ -161,9 +161,12 @@ namespace Joveler.DynLoader.Tests
             Assert.IsTrue(dupInitGuard);
 
             Console.WriteLine(manager.Lib.ZLibVersion());
+            Console.WriteLine($"UnknownRawPtr = 0x{manager.Lib.UnknownRawPtr:X8}");
+            Console.WriteLine($"DeflateRawPtr = 0x{manager.Lib.DeflateRawPtr:X8}");
 
             Assert.IsFalse(manager.Lib.HasUnknownSymbol);
             Assert.IsTrue(manager.Lib.HasCrc32Symbol);
+            Assert.AreEqual(IntPtr.Zero, manager.Lib.UnknownRawPtr);
             Assert.AreNotEqual(IntPtr.Zero, manager.Lib.DeflateRawPtr);
 
             bool dupCleanGuard = false;

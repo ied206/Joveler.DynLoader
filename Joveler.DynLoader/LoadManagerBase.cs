@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019-2021 Hajin Jang
+    Copyright (C) 2019-2023 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -161,20 +161,20 @@ namespace Joveler.DynLoader
         }
 
         /// <summary>
-        /// Create DynLoaderBase singleton instance in a thread-safe way.
+        /// Create DynLoaderBase singleton instance in a thread-safe way, with a custom object.
         /// </summary>
-        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
-        public void GlobalInit(object data)
+        /// <param name="loadData">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
+        public void GlobalInit(object loadData)
         {
-            GlobalInit(null, data);
+            GlobalInit(null, loadData);
         }
 
         /// <summary>
-        /// Create DynLoaderBase singleton instance in a thread-safe way.
+        /// Create DynLoaderBase singleton instance in a thread-safe way, with a custom object.
         /// </summary>
         /// <param name="libPath">A native library file to load.</param>
-        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
-        public void GlobalInit(string libPath, object data)
+        /// <param name="loadData">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
+        public void GlobalInit(string libPath, object loadData)
         {
             lock (_loadLock)
             {
@@ -183,7 +183,7 @@ namespace Joveler.DynLoader
 
                 Lib = CreateLoader();
                 PreInitHook();
-                Lib.LoadLibrary(libPath, data);
+                Lib.LoadLibrary(libPath, loadData);
                 PostInitHook();
             }
         }

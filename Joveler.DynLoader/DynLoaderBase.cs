@@ -1,5 +1,5 @@
 ﻿/*
-    Copyright (C) 2019-2021 Hajin Jang
+    Copyright (C) 2019-2023 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -146,20 +146,20 @@ namespace Joveler.DynLoader
         }
 
         /// <summary>
-        /// Load a native dynamic library from a path of `DefaultLibFileName`.
+        /// Load a native dynamic library from a path of `DefaultLibFileName`, with custom object.
         /// </summary>
-        /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-        public void LoadLibrary(object data)
+        /// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+        public void LoadLibrary(object loadData)
         {
-            LoadLibrary(null, data);
+            LoadLibrary(null, loadData);
         }
 
         /// <summary>
-        /// Load a native dynamic library from a given path.
+        /// Load a native dynamic library from a given path, with custom object.
         /// </summary>
         /// <param name="libPath">A native library file to load.</param>
-        /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-        public void LoadLibrary(string libPath, object data)
+        /// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+        public void LoadLibrary(string libPath, object loadData)
         {
             // Should DynLoaderBase use default library filename?
             if (libPath == null)
@@ -172,7 +172,7 @@ namespace Joveler.DynLoader
             LibPath = libPath;
 
             // Parse custom load data
-            ParseLoadData(data);
+            HandleLoadData(loadData);
 
             // Use .NET Core's NativeLibrary when available
 #if NETCOREAPP
@@ -269,11 +269,11 @@ namespace Joveler.DynLoader
 
         #region (protected) GetFuncPtr, GetRawFuncPtr, HasFuncSymbol
         /// <summary>
-        /// Get a delegate of a native function from a library.
-        /// The method will use name of the given delegate T as function symbol.
+        /// Get a delegate of a native function from the library.
+        /// The method will use name of the given delegate T as a function symbol.
         /// </summary>
-        /// <typeparam name="T">Delegate type of a native function.</typeparam>
-        /// <returns>Delegate instance of a native function.</returns>
+        /// <typeparam name="T">Delegate type of the native function.</typeparam>
+        /// <returns>Delegate instance of the native function.</returns>
         /// <exception cref="EntryPointNotFoundException">Throwen if the given function symbol was not found.</exception>
         protected T GetFuncPtr<T>() where T : Delegate
         {
@@ -282,11 +282,11 @@ namespace Joveler.DynLoader
         }
 
         /// <summary>
-        /// Get a delegate of a native function from a library.
+        /// Get a delegate of a native function from the library.
         /// </summary>
-        /// <typeparam name="T">Delegate type of a native function.</typeparam>
+        /// <typeparam name="T">Delegate type of the native function.</typeparam>
         /// <param name="funcSymbol">Name of the exported function symbol.</param>
-        /// <returns>Delegate instance of a native function.</returns>
+        /// <returns>Delegate instance of the native function.</returns>
         /// <exception cref="EntryPointNotFoundException">Throwen if the given function symbol was not found.</exception>
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
@@ -342,6 +342,11 @@ namespace Joveler.DynLoader
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
         }
 
+        /// <summary>
+        /// Get a raw pointer of a native function from the library.
+        /// </summary>
+        /// <param name="funcSymbol">Name of the exported function symbol.</param>
+        /// <returns>Raw pointer address of the native function. Returns IntPtr.Zero if the symbol was not found.</returns>
         protected IntPtr GetRawFuncPtr(string funcSymbol)
         {
             IntPtr funcPtr = IntPtr.Zero;
@@ -371,6 +376,11 @@ namespace Joveler.DynLoader
             return funcPtr;
         }
 
+        /// <summary>
+        /// Check if the library has a native function symbol.
+        /// </summary>
+        /// <param name="funcSymbol">Name of the exported function symbol.</param>
+        /// <returns>Returns true if the address of the exported symbol was found.</returns>
         protected bool HasFuncSymbol(string funcSymbol)
         {
             return GetRawFuncPtr(funcSymbol) != IntPtr.Zero;
@@ -388,12 +398,12 @@ namespace Joveler.DynLoader
         protected abstract string DefaultLibFileName { get; }
         #endregion
 
-        #region (virtual) ParseLoadData
+        #region (virtual) HandleLoadData
         /// <summary>
-        /// Parse custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
+        /// Handle custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
         /// </summary>
-        /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-        protected virtual void ParseLoadData(object data)
+        /// <param name="data">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+        protected virtual void HandleLoadData(object data)
         {
 
         }

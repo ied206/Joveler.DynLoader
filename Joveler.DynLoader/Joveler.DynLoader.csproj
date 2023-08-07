@@ -15,7 +15,11 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Allow passing arbitrary objects to GlobalInit().</PackageReleaseNotes>
+    <PackageReleaseNotes>- Allow passing a custom object when loading a native library.
+    - Add `LoadManagerBase.GlobalInit()` overloadings with custom object parameter.
+    - Add `DynLoaderBase.LoadLibrary()` overloadings with custom object parameter.
+    - Add virtual method `DynLoaderBase.HandleLoadData()`.
+    - Add helper method `DynLoaderBase.HasFuncSymbol()`.</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
   </PropertyGroup>
   <!-- PackageReference -->

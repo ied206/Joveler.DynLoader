@@ -48,7 +48,8 @@ Follow these steps to use a wrapper library.
         public static void GlobalCleanup() => Manager.GlobalCleanup();
     }
     ```
-1. Call `GlobalInit()` to load native functions.
+1. Call one of `GlobalInit` functions to load native functions.
+    - You may call `GlobalInit(object loadData)` or `GlobalInit(string libPath, object loadData)` instead to pass a custom object. It would be handled by `DynLoaderBase<T>.HandleLoadData()` later.
 1. Call delegate instances to call corresponding native functions.
 
 ## DynLoaderBase
@@ -105,9 +106,37 @@ public SimpleFileMagic() : base() { }
 
 ### LoadLibrary
 
+```csharp
+/// <summary>
+/// Load a native dynamic library from a path of `DefaultLibFileName`.
+/// </summary>
+public void LoadLibrary();
+/// <summary>
+/// Load a native dynamic library from a given path.
+/// </summary>
+/// <param name="libPath">A native library file to load.</param>
+public void LoadLibrary(string libPath);
+/// <summary>
+/// Load a native dynamic library from a path of `DefaultLibFileName`, with custom object.
+/// </summary>
+/// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+public void LoadLibrary(object loadData);
+/// <summary>
+/// Load a native dynamic library from a given path, with custom object.
+/// </summary>
+/// <param name="libPath">A native library file to load.</param>
+/// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+public void LoadLibrary(string libPath, object loadData);
+```
+
 After creating an instance of a derived class, make sure to call `LoadLibrary()` to load a native library. After that, you can invoke extern native functions via delegate instances.
 
-`LoadLibrary(string libPath)` loads that specific native library. The parameterless version loads the default native library from the base system. 
+| Signature       | Description |
+|-----------------|-------------|
+| `LoadLibrary()` | Loads the default native library from the base system. Works only if `DefaultLibFileName` is not null. |
+| `LoadLibrary(string libPath)` | Loads specific native library from the path. |
+| `LoadLibrary(object loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary()`. |
+| `LoadLibrary(string libPath, object loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary(string libPath)`. |
 
 When it fails to find a native library, [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception?view=netcore-3.1) is thrown. 
 
@@ -138,6 +167,11 @@ protected abstract void LoadFunctions();
 /// Clear pointer of native functions. Called in Dispose(bool).
 /// </summary>
 protected abstract void ResetFunctions();
+/// <summary>
+/// Handle custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
+/// </summary>
+/// <param name="data">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+protected virtual void HandleLoadData(object data) { }
 ```
 
 #### LoadFunctions()
@@ -167,9 +201,9 @@ protected override void LoadFunctions()
 
 #### ResetFunctions()
 
-Override `ResetFunctions()` when you want to explicitly clear native resources and delegate assignments.
+Always override `ResetFunctions()` with a code clearing native resources and delegate assignments.
 
-Usually, the override of this method is not required, as the library handle is automatically cleared when the instance is disposed of. But if you need to clear delegate assignments manually, you have to implement them.
+In most platforms, simply assigning `null` to function pointers is suffice.
 
 #### DefaultLibFileName
 
@@ -189,6 +223,63 @@ protected override string DefaultLibFileName
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return "libz.dylib";
         throw new PlatformNotSupportedException();
+    }
+}
+```
+
+#### HandleLoadData()
+
+Override `HandleLoadData()` to put a business logic to handle custom object which has been passed to `LoadManagerBase<T>.GlobalInit()`.
+
+This functions is called after the `LibPath` property is set to native library path, and before `LoadFunctions()` is called.
+
+You are able to access the results of `HandleLoadData()` from `LoadFunctions()`.
+
+For example, you may need to override it to support both `cdecl` and `stdcall` ABIs of the same library.
+
+**Example**
+
+```csharp
+public class SimpleZLibLoadData
+{
+    public bool IsWindowsStdcall { get; set; } = true;
+}
+```
+
+```csharp
+private bool _isWindowsStdcall = true;
+
+protected override void HandleLoadData(object data)
+{
+    if (!(data is SimpleZLibLoadData loadData))
+        return;
+
+    _isWindowsStdcall = loadData.IsWindowsStdcall;
+}
+
+internal class Stdcall
+{
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
+    public adler32 Adler32;
+}
+
+internal class Cdecl
+{
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
+    public adler32 Adler32;
+}
+
+protected override void LoadFunctions()
+{
+    if (_isWindowsStdcall)
+    {
+        _stdcall.Adler32 = GetFuncPtr<Stdcall.adler32>(nameof(Stdcall.adler32));
+    }
+    else
+    {
+        _cdecl.Adler32 = GetFuncPtr<Cdecl.adler32>(nameof(Cdecl.adler32));
     }
 }
 ```
