@@ -64,8 +64,8 @@
   <!-- Unfortanately, MSBuild does not support Condition on Import. -->
   <!-- <Import Project="$(MSBuildProjectDirectory)\SampleScript.netfx.targets" -->
 
-  <!-- Native Library for .NET Core 2.1 & 3.1 -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1' or '$(TargetFramework)' == 'netcoreapp3.1'">
+  <!-- Native Library for .NET Core -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
     <None Include="runtimes\win-x86\native\*.dll">
       <Link>runtimes\win-x86\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -94,7 +94,10 @@
       <Link>runtimes\osx-x64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="runtimes\osx-arm64\native\*.dylib">
+	  <Link>runtimes\osx-arm64\native\%(FileName)%(Extension)</Link> <!-- Project Reference -->
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   
-
 </Project>

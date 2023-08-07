@@ -24,10 +24,10 @@
 */
 
 using System;
-#if !NETCOREAPP3_1
+#if !NETCOREAPP
 using System.ComponentModel; // For Win32Exception
+using System.IO; // For Path
 #endif
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -35,6 +35,10 @@ namespace Joveler.DynLoader
 {
     public abstract class DynLoaderBase : IDisposable
     {
+        #region Fields and Properties
+        protected string LibPath { get; private set; } = string.Empty;
+        #endregion
+
         #region Constructor
         /// <summary>
         /// Create an instance of DynLoaderBase and set platform conventions.
@@ -129,7 +133,7 @@ namespace Joveler.DynLoader
         /// </summary>
         public void LoadLibrary()
         {
-            LoadLibrary(null);
+            LoadLibrary(null, null);
         }
 
         /// <summary>
@@ -137,6 +141,25 @@ namespace Joveler.DynLoader
         /// </summary>
         /// <param name="libPath">A native library file to load.</param>
         public void LoadLibrary(string libPath)
+        {
+            LoadLibrary(libPath, null);
+        }
+
+        /// <summary>
+        /// Load a native dynamic library from a path of `DefaultLibFileName`.
+        /// </summary>
+        /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+        public void LoadLibrary(object data)
+        {
+            LoadLibrary(null, data);
+        }
+
+        /// <summary>
+        /// Load a native dynamic library from a given path.
+        /// </summary>
+        /// <param name="libPath">A native library file to load.</param>
+        /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+        public void LoadLibrary(string libPath, object data)
         {
             // Should DynLoaderBase use default library filename?
             if (libPath == null)
@@ -146,9 +169,13 @@ namespace Joveler.DynLoader
 
                 libPath = DefaultLibFileName;
             }
+            LibPath = libPath;
+
+            // Parse custom data
+            ParseLoadData(data);
 
             // Use .NET Core's NativeLibrary when available
-#if NETCOREAPP3_1
+#if NETCOREAPP
             // NET's NativeLibrary will throw DllNotFoundException by itself.
             // No need to check _hModule.IsInvalid here.
             _hModule = new NetSafeLibHandle(libPath);
@@ -262,7 +289,7 @@ namespace Joveler.DynLoader
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
             IntPtr funcPtr;
-#if NETCOREAPP3_1
+#if NETCOREAPP
             funcPtr = NativeLibrary.GetExport(_hModule.DangerousGetHandle(), funcSymbol);
 #else
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -325,6 +352,16 @@ namespace Joveler.DynLoader
         /// e.g. zlib is often included in Linux and macOS, but not in Windows.
         /// </remarks>
         protected abstract string DefaultLibFileName { get; }
+        #endregion
+
+        #region (virtual) ParseLoadData
+        /// <summary>
+        /// Parse custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
+        /// </summary>
+        /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
+        protected virtual void ParseLoadData(object data)
+        {
+        }
         #endregion
 
         #region (abstract) LoadFunctions, ResetFunctions

@@ -148,23 +148,42 @@ namespace Joveler.DynLoader
         /// </summary>
         public void GlobalInit()
         {
-            GlobalInit(null);
+            GlobalInit(null, null);
         }
 
         /// <summary>
         /// Create DynLoaderBase singleton instance in a thread-safe way.
         /// </summary>
-        /// <param name="libPath"></param>
+        /// <param name="libPath">A native library file to load.</param>
         public void GlobalInit(string libPath)
+        {
+            GlobalInit(libPath, null);
+        }
+
+        /// <summary>
+        /// Create DynLoaderBase singleton instance in a thread-safe way.
+        /// </summary>
+        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseCustomData()"/>.</param>
+        public void GlobalInit(object data)
+        {
+            GlobalInit(null, data);
+        }
+
+        /// <summary>
+        /// Create DynLoaderBase singleton instance in a thread-safe way.
+        /// </summary>
+        /// <param name="libPath">A native library file to load.</param>
+        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseCustomData()"/>.</param>
+        public void GlobalInit(string libPath, object data)
         {
             lock (_loadLock)
             {
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
 
-                PreInitHook();
                 Lib = CreateLoader();
-                Lib.LoadLibrary(libPath);
+                PreInitHook();
+                Lib.LoadLibrary(libPath, data);
                 PostInitHook();
             }
         }

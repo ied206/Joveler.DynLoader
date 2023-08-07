@@ -1,4 +1,9 @@
-﻿using System;
+﻿/*
+    Written by Hajin Jang.
+    Released under public domain.
+*/
+
+using System;
 
 namespace Joveler.DynLoader.Tests
 {

@@ -38,10 +38,10 @@ bld/
 [Ll]og/
 
 # Do not ignore Precompiled directory
-!/**/Precompiled/x86/
-!/**/Precompiled/x64/
-!/**/Precompiled/armhf/
-!/**/Precompiled/arm64/
+!/**/runtimes/**/native/
+
+# Thumbs.db
+Thumbs.db
 
 # macOS DS_Store guard
 .DS_Store
@@ -172,6 +172,7 @@ AutoTest.Net/
 
 # Installshield output folder
 [Ee]xpress/
+
 
 # DocProject is a documentation generator add-in
 DocProject/buildhelp/

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2019-2021 Hajin Jang
+    Copyright (C) 2019-2023 Hajin Jang
     Licensed under MIT License.
  
     MIT License
@@ -34,8 +34,10 @@ namespace Joveler.DynLoader.Tests
     public class TestSetup
     {
         public static string SampleDir { get; private set; }
-        public static string PackagedZLibPath { get; private set; }
-        public static SimpleZLib ExplicitZLib { get; private set; }
+        public static string PackagedZLibPathStdcall { get; private set; }
+        public static string PackagedZLibPathCdecl { get; private set; }
+        public static SimpleZLib ExplicitStdcallZLib { get; private set; }
+        public static SimpleZLib ExplicitCdeclZLib { get; private set; }
         public static SimpleZLib ImplicitZLib { get; private set; }
         public static string PackagedMagicPath { get; private set; }
         public static SimpleFileMagic ExplicitMagic { get; private set; }
@@ -52,14 +54,13 @@ namespace Joveler.DynLoader.Tests
             string libBaseDir = Path.GetFullPath(Path.Combine(TestHelper.GetProgramAbsolutePath(), "..", "..", ".."));
 #endif
 
-            const string zlibDllName = "zlibwapi.dll";
+            const string zlibStdcallDllName = "zlibwapi.dll";
+            const string zlibCdeclDllName = "zlib1.dll";
             const string magicDllName = "libmagic-1.dll";
-#if NETCOREAPP
             const string zlibSoName = "libz.so";
             const string zlibDylibName = "libz.dylib";
             const string magicSoName = "libmagic.so";
             const string magicDylibName = "libmagic.dylib";
-#endif
 
             string arch = null;
             switch (RuntimeInformation.ProcessArchitecture)
@@ -80,12 +81,12 @@ namespace Joveler.DynLoader.Tests
 
             bool implicitLoadZLib = false;
             bool implicitLoadMagic = false;
-            bool implicitLoadPlataform = false;
+            bool implicitLoadPlatform = false;
 
             string libDir;
 #if NETFRAMEWORK
             libDir = Path.Combine(libBaseDir, arch);
-#elif NETCOREAPP
+#else
             libDir = Path.Combine(libBaseDir, "runtimes");
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 libDir = Path.Combine(libDir, "win-");
@@ -95,33 +96,40 @@ namespace Joveler.DynLoader.Tests
                 libDir = Path.Combine(libDir, "osx-");
             libDir += arch;
             libDir = Path.Combine(libDir, "native");
+#endif
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-#endif
             {
-                PackagedZLibPath = Path.Combine(libDir, zlibDllName);
+                PackagedZLibPathStdcall = Path.Combine(libDir, zlibStdcallDllName);
+                PackagedZLibPathCdecl = Path.Combine(libDir, zlibCdeclDllName);
                 PackagedMagicPath = Path.Combine(libDir, magicDllName);
-                implicitLoadPlataform = true;
+                implicitLoadPlatform = true;
             }
-#if NETCOREAPP
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                PackagedZLibPath = Path.Combine(libDir, zlibSoName);
+                PackagedZLibPathStdcall = Path.Combine(libDir, zlibSoName);
                 PackagedMagicPath = Path.Combine(libDir, magicSoName);
                 implicitLoadZLib = true;
                 implicitLoadMagic = true;
-                implicitLoadPlataform = true;
+                implicitLoadPlatform = true;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                PackagedZLibPath = Path.Combine(libDir, zlibDylibName);
+                PackagedZLibPathStdcall = Path.Combine(libDir, zlibDylibName);
                 PackagedMagicPath = Path.Combine(libDir, magicDylibName);
                 implicitLoadZLib = true;
             }
-#endif
 
-            ExplicitZLib = new SimpleZLib();
-            ExplicitZLib.LoadLibrary(PackagedZLibPath);
+            ExplicitStdcallZLib = new SimpleZLib();
+            ExplicitStdcallZLib.LoadLibrary(PackagedZLibPathStdcall, new SimpleZLibLoadData()
+            {
+                IsWindowsStdcall = true,
+            });
+            ExplicitCdeclZLib = new SimpleZLib();
+            ExplicitCdeclZLib.LoadLibrary(PackagedZLibPathCdecl, new SimpleZLibLoadData()
+            {
+                IsWindowsStdcall = false,
+            });
             if (implicitLoadZLib)
             {
                 ImplicitZLib = new SimpleZLib();
@@ -136,7 +144,7 @@ namespace Joveler.DynLoader.Tests
                 ImplicitMagic.LoadLibrary();
             }
 
-            if (implicitLoadPlataform)
+            if (implicitLoadPlatform)
             {
                 PlatformLib = new SimplePlatform();
                 PlatformLib.LoadLibrary();
@@ -146,7 +154,7 @@ namespace Joveler.DynLoader.Tests
         [AssemblyCleanup]
         public static void AssemblyCleanup()
         {
-            ExplicitZLib?.Dispose();
+            ExplicitStdcallZLib?.Dispose();
             ImplicitZLib?.Dispose();
             ExplicitMagic?.Dispose();
             ImplicitMagic?.Dispose();
