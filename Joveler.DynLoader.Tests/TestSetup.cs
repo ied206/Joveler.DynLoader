@@ -73,7 +73,7 @@ namespace Joveler.DynLoader.Tests
                     arch = "x64";
                     break;
                 case Architecture.Arm:
-                    arch = "armhf";
+                    arch = "arm";
                     break;
                 case Architecture.Arm64:
                     arch = "arm64";
