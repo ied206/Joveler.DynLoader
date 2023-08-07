@@ -162,6 +162,10 @@ namespace Joveler.DynLoader.Tests
 
             Console.WriteLine(manager.Lib.ZLibVersion());
 
+            Assert.IsFalse(manager.Lib.HasUnknownSymbol);
+            Assert.IsTrue(manager.Lib.HasCrc32Symbol);
+            Assert.AreNotEqual(IntPtr.Zero, manager.Lib.DeflateRawPtr);
+
             bool dupCleanGuard = false;
             manager.GlobalCleanup();
             try

@@ -171,7 +171,7 @@ namespace Joveler.DynLoader
             }
             LibPath = libPath;
 
-            // Parse custom data
+            // Parse custom load data
             ParseLoadData(data);
 
             // Use .NET Core's NativeLibrary when available
@@ -199,7 +199,7 @@ namespace Joveler.DynLoader
                 if (_hModule.IsInvalid)
                 {
                     // Sample message of .NET Core 3.1's NativeLoader:
-                    // Unable to load DLL 'x64\zlibwapi.dll' or one of its dependencies: The specified module could not be found. (0x8007007E).
+                    // Unable to load DLL 'x64\zlibwapi.dll' or one of its dependencies: The specified module could not be found. (0x8007007E)
                     // Unable to load DLL 'ᄒᆞᆫ글ḀḘ韓國Ghost.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)
                     string exceptMsg = $"Unable to load DLL '{libPath}' or one of its dependencies";
                     int errorCode = Marshal.GetLastWin32Error();
@@ -267,13 +267,14 @@ namespace Joveler.DynLoader
         private bool Loaded => _hModule != null && !_hModule.IsInvalid;
         #endregion
 
-        #region (protected) GetFuncPtr
+        #region (protected) GetFuncPtr, GetRawFuncPtr, HasFuncSymbol
         /// <summary>
         /// Get a delegate of a native function from a library.
         /// The method will use name of the given delegate T as function symbol.
         /// </summary>
         /// <typeparam name="T">Delegate type of a native function.</typeparam>
         /// <returns>Delegate instance of a native function.</returns>
+        /// <exception cref="EntryPointNotFoundException">Throwen if the given function symbol was not found.</exception>
         protected T GetFuncPtr<T>() where T : Delegate
         {
             string funcSymbol = typeof(T).Name;
@@ -286,6 +287,7 @@ namespace Joveler.DynLoader
         /// <typeparam name="T">Delegate type of a native function.</typeparam>
         /// <param name="funcSymbol">Name of the exported function symbol.</param>
         /// <returns>Delegate instance of a native function.</returns>
+        /// <exception cref="EntryPointNotFoundException">Throwen if the given function symbol was not found.</exception>
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
             IntPtr funcPtr;
@@ -315,7 +317,6 @@ namespace Joveler.DynLoader
                         throw new EntryPointNotFoundException($"{exceptMsg}.");
                     else
                         throw new EntryPointNotFoundException($"{exceptMsg}: {errorMsg}");
-
                 }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -338,8 +339,41 @@ namespace Joveler.DynLoader
                 throw new PlatformNotSupportedException();
             }
 #endif
-
             return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
+        }
+
+        protected IntPtr GetRawFuncPtr(string funcSymbol)
+        {
+            IntPtr funcPtr = IntPtr.Zero;
+#if NETCOREAPP
+            if (!NativeLibrary.TryGetExport(_hModule.DangerousGetHandle(), funcSymbol, out funcPtr))
+            { // symbol not found
+                funcPtr = IntPtr.Zero;
+            }
+#else
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                funcPtr = NativeMethods.Win32.GetProcAddress(_hModule, funcSymbol);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                funcPtr = NativeMethods.Linux.DLSym(_hModule, funcSymbol);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                funcPtr = NativeMethods.Mac.DLSym(_hModule, funcSymbol);
+            }
+            else
+            {
+                throw new PlatformNotSupportedException();
+            }
+#endif
+            return funcPtr;
+        }
+
+        protected bool HasFuncSymbol(string funcSymbol)
+        {
+            return GetRawFuncPtr(funcSymbol) != IntPtr.Zero;
         }
         #endregion
 
@@ -361,6 +395,7 @@ namespace Joveler.DynLoader
         /// <param name="data">Custom object to be passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
         protected virtual void ParseLoadData(object data)
         {
+
         }
         #endregion
 

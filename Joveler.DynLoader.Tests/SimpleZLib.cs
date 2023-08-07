@@ -11,7 +11,6 @@ namespace Joveler.DynLoader.Tests
     public class SimpleZLibLoadData
     {
         public bool IsWindowsStdcall { get; set; } = true;
-        public bool HasScanned { get; set; } = false;
     }
 
     /// <summary>
@@ -38,6 +37,10 @@ namespace Joveler.DynLoader.Tests
         }
 
         private bool _isWindowsStdcall = true;
+
+        public bool HasUnknownSymbol { get; private set; } = true;
+        public bool HasCrc32Symbol { get; private set; } = false;
+        public IntPtr DeflateRawPtr { get; private set; } = IntPtr.Zero;
         #endregion
 
         #region Stdcall and Cdecl
@@ -61,6 +64,10 @@ namespace Joveler.DynLoader.Tests
         /// <inheritdocs/>
         protected override void LoadFunctions()
         {
+            HasUnknownSymbol = HasFuncSymbol("UnknownSymbol");
+            HasCrc32Symbol = HasFuncSymbol(nameof(Cdecl.crc32));
+            DeflateRawPtr = GetRawFuncPtr("deflate");
+
             if (_isWindowsStdcall)
             {
                 _stdcall.Adler32 = GetFuncPtr<Stdcall.adler32>(nameof(Stdcall.adler32));

@@ -163,7 +163,7 @@ namespace Joveler.DynLoader
         /// <summary>
         /// Create DynLoaderBase singleton instance in a thread-safe way.
         /// </summary>
-        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseCustomData()"/>.</param>
+        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
         public void GlobalInit(object data)
         {
             GlobalInit(null, data);
@@ -173,7 +173,7 @@ namespace Joveler.DynLoader
         /// Create DynLoaderBase singleton instance in a thread-safe way.
         /// </summary>
         /// <param name="libPath">A native library file to load.</param>
-        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseCustomData()"/>.</param>
+        /// <param name="data">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
         public void GlobalInit(string libPath, object data)
         {
             lock (_loadLock)
