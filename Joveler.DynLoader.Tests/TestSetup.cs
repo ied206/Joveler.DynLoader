@@ -144,7 +144,7 @@ namespace Joveler.DynLoader.Tests
                 implicitLoadZLib = true;
 
                 TempUpstreamZLibPath = Path.Combine(TempUpstreamZLibDir, zlibDylibName);
-                TempNgCompatZLibPath = Path.Combine(TempUpstreamZLibDir, zlibDylibName);
+                TempNgCompatZLibPath = Path.Combine(TempNgCompatZLibDir, zlibDylibName);
             }
             File.Copy(PackagedCdeclZLibPath, TempUpstreamZLibPath, true);
             File.Copy(PackagedNgCompatZLibPath, TempNgCompatZLibPath, true);
