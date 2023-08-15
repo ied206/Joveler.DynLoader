@@ -146,8 +146,8 @@ namespace Joveler.DynLoader.Tests
                 TempUpstreamZLibPath = Path.Combine(TempUpstreamZLibDir, zlibDylibName);
                 TempNgCompatZLibPath = Path.Combine(TempUpstreamZLibDir, zlibDylibName);
             }
-            File.Copy(PackagedCdeclZLibPath, TempUpstreamZLibPath);
-            File.Copy(PackagedNgCompatZLibPath, TempNgCompatZLibPath);
+            File.Copy(PackagedCdeclZLibPath, TempUpstreamZLibPath, true);
+            File.Copy(PackagedNgCompatZLibPath, TempNgCompatZLibPath, true);
 
             ExplicitStdcallZLib = new SimpleZLib();
             ExplicitStdcallZLib.LoadLibrary(PackagedStdcallZLibPath, new SimpleZLibLoadData()
