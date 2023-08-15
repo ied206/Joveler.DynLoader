@@ -26,6 +26,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -34,16 +35,23 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class TestSetup
     {
-        public static string SampleDir { get; private set; }
-        public static string PackagedZLibPathStdcall { get; private set; }
-        public static string PackagedZLibPathCdecl { get; private set; }
-        public static SimpleZLib ExplicitStdcallZLib { get; private set; }
-        public static SimpleZLib ExplicitCdeclZLib { get; private set; }
-        public static SimpleZLib ImplicitZLib { get; private set; }
-        public static string PackagedMagicPath { get; private set; }
-        public static SimpleFileMagic ExplicitMagic { get; private set; }
-        public static SimpleFileMagic ImplicitMagic { get; private set; }
-        public static SimplePlatform PlatformLib { get; private set; }
+        public static string SampleDir { get; private set; } = null;
+        public static string PackagedStdcallZLibPath { get; private set; } = null;
+        public static string PackagedCdeclZLibPath { get; private set; } = null;
+        public static string PackagedNgCompatZLibPath { get; private set; } = null;
+        public static SimpleZLib ExplicitStdcallZLib { get; private set; } = null;
+        public static SimpleZLib ExplicitCdeclZLib { get; private set; } = null;
+        public static SimpleZLib ImplicitZLib { get; private set; } = null;
+        public static string PackagedMagicPath { get; private set; } = null;
+        public static SimpleFileMagic ExplicitMagic { get; private set; } = null;
+        public static SimpleFileMagic ImplicitMagic { get; private set; } = null;
+        public static SimplePlatform PlatformLib { get; private set; } = null;
+        public static string TempUpstreamZLibDir { get; private set; } = null;
+        public static string TempUpstreamZLibPath { get; private set; } = null;
+        public static string TempNgCompatZLibDir { get; private set; } = null;
+        public static string TempNgCompatZLibPath { get; private set; } = null;
+        public static SymbolCoexist UpstreamZLib { get; private set; } = null;
+        public static SymbolCoexist NgCompatZLib { get; private set; } = null;
 
         #region AssemblyInitalize, AssemblyCleanup
         [AssemblyInitialize]
@@ -57,11 +65,17 @@ namespace Joveler.DynLoader.Tests
 
             const string zlibStdcallDllName = "zlibwapi.dll";
             const string zlibCdeclDllName = "zlib1.dll";
+            const string zlibNgCompatDllName = "zlib1-ng-compat.dll";
             const string magicDllName = "libmagic-1.dll";
             const string zlibSoName = "libz.so";
+            const string zlibNgCompatSoName = "libz-ng-compat.so";
             const string zlibDylibName = "libz.dylib";
+            const string zlibNgCompatDylibName = "libz-ng-compat.dylib";
             const string magicSoName = "libmagic.so";
             const string magicDylibName = "libmagic.dylib";
+
+            TempUpstreamZLibDir = TestHelper.GetTempDir();
+            TempNgCompatZLibDir = TestHelper.GetTempDir();
 
             string arch = null;
             switch (RuntimeInformation.ProcessArchitecture)
@@ -101,33 +115,47 @@ namespace Joveler.DynLoader.Tests
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                PackagedZLibPathStdcall = Path.Combine(libDir, zlibStdcallDllName);
-                PackagedZLibPathCdecl = Path.Combine(libDir, zlibCdeclDllName);
+                PackagedStdcallZLibPath = Path.Combine(libDir, zlibStdcallDllName);
+                PackagedCdeclZLibPath = Path.Combine(libDir, zlibCdeclDllName);
+                PackagedNgCompatZLibPath = Path.Combine(libDir, zlibNgCompatDllName);
                 PackagedMagicPath = Path.Combine(libDir, magicDllName);
                 implicitLoadPlatform = true;
+
+                TempUpstreamZLibPath = Path.Combine(TempUpstreamZLibDir, zlibCdeclDllName);
+                TempNgCompatZLibPath = Path.Combine(TempNgCompatZLibDir, zlibCdeclDllName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                PackagedZLibPathStdcall = Path.Combine(libDir, zlibSoName);
+                PackagedCdeclZLibPath = Path.Combine(libDir, zlibSoName);
+                PackagedNgCompatZLibPath = Path.Combine(libDir, zlibNgCompatSoName);
                 PackagedMagicPath = Path.Combine(libDir, magicSoName);
                 implicitLoadZLib = true;
                 implicitLoadMagic = true;
                 implicitLoadPlatform = true;
+
+                TempUpstreamZLibPath = Path.Combine(TempUpstreamZLibDir, zlibSoName);
+                TempNgCompatZLibPath = Path.Combine(TempNgCompatZLibDir, zlibSoName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                PackagedZLibPathStdcall = Path.Combine(libDir, zlibDylibName);
+                PackagedCdeclZLibPath = Path.Combine(libDir, zlibDylibName);
+                PackagedNgCompatZLibPath = Path.Combine(libDir, zlibNgCompatDylibName);
                 PackagedMagicPath = Path.Combine(libDir, magicDylibName);
                 implicitLoadZLib = true;
+
+                TempUpstreamZLibPath = Path.Combine(TempUpstreamZLibDir, zlibDylibName);
+                TempNgCompatZLibPath = Path.Combine(TempUpstreamZLibDir, zlibDylibName);
             }
+            File.Copy(PackagedCdeclZLibPath, TempUpstreamZLibPath);
+            File.Copy(PackagedNgCompatZLibPath, TempNgCompatZLibPath);
 
             ExplicitStdcallZLib = new SimpleZLib();
-            ExplicitStdcallZLib.LoadLibrary(PackagedZLibPathStdcall, new SimpleZLibLoadData()
+            ExplicitStdcallZLib.LoadLibrary(PackagedStdcallZLibPath, new SimpleZLibLoadData()
             {
                 IsWindowsStdcall = true,
             });
             ExplicitCdeclZLib = new SimpleZLib();
-            ExplicitCdeclZLib.LoadLibrary(PackagedZLibPathCdecl, new SimpleZLibLoadData()
+            ExplicitCdeclZLib.LoadLibrary(PackagedCdeclZLibPath, new SimpleZLibLoadData()
             {
                 IsWindowsStdcall = false,
             });
@@ -136,6 +164,11 @@ namespace Joveler.DynLoader.Tests
                 ImplicitZLib = new SimpleZLib();
                 ImplicitZLib.LoadLibrary();
             }
+
+            UpstreamZLib = new SymbolCoexist();
+            UpstreamZLib.LoadLibrary(TempUpstreamZLibPath);
+            NgCompatZLib = new SymbolCoexist();
+            NgCompatZLib.LoadLibrary(TempNgCompatZLibPath);
 
             ExplicitMagic = new SimpleFileMagic();
             ExplicitMagic.LoadLibrary(PackagedMagicPath);
@@ -160,19 +193,10 @@ namespace Joveler.DynLoader.Tests
             ExplicitMagic?.Dispose();
             ImplicitMagic?.Dispose();
             PlatformLib?.Dispose();
-        }
-        #endregion
+            UpstreamZLib?.Dispose();
+            NgCompatZLib?.Dispose();
 
-        #region TestHelper
-        public class TestHelper
-        {
-            public static string GetProgramAbsolutePath()
-            {
-                string path = AppDomain.CurrentDomain.BaseDirectory;
-                if (Path.GetDirectoryName(path) != null)
-                    path = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                return path;
-            }
+            TestHelper.CleanBaseTempDir();
         }
         #endregion
 
