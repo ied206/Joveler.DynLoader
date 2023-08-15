@@ -30,20 +30,25 @@ using System.Text;
 
 namespace Joveler.DynLoader.Tests
 {
+    /// <summary>
+    /// Load two `zlib1.dll` (one from zlib, one from zlib-ng) and test if two can co-exist together.
+    /// </summary>
     [TestClass]
-    public class SimpleZLibTests
+    public class SymbolCoexistTests
     {
-        private static SimpleZLib[] _zlibs;
+        private static string[] _libPaths;
+        private static SymbolCoexist[] _zlibs;
 
         [ClassInitialize]
         public static void Init(TestContext _)
         {
-            _zlibs = new SimpleZLib[] { TestSetup.ExplicitStdcallZLib, TestSetup.ExplicitCdeclZLib, TestSetup.ImplicitZLib };
+            _libPaths = new string[] { TestSetup.TempUpstreamZLibPath, TestSetup.TempNgCompatZLibPath };
+            _zlibs = new SymbolCoexist[] { TestSetup.UpstreamZLib, TestSetup.NgCompatZLib };
             _zlibs = _zlibs.Where(z => z != null).ToArray();
         }
 
         [TestMethod]
-        public unsafe void Adler32()
+        public unsafe void CoexistAdler32()
         {
             // ABC -> 0x018D00C7u
             // XYZ -> 0x0217010Cu
@@ -52,7 +57,7 @@ namespace Joveler.DynLoader.Tests
             byte[] second = Encoding.UTF8.GetBytes("XYZ");
             byte[] full = Encoding.UTF8.GetBytes("ABCXYZ");
 
-            foreach (SimpleZLib z in _zlibs)
+            foreach (SymbolCoexist z in _zlibs)
             {
                 fixed (byte* firstBuf = first)
                 fixed (byte* secondBuf = second)
@@ -69,7 +74,7 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public unsafe void Crc32()
+        public unsafe void CoexistCrc32()
         {
             // ABC -> 0xA3830348u
             // XYZ -> 0x7D29F8EDu
@@ -78,7 +83,7 @@ namespace Joveler.DynLoader.Tests
             byte[] second = Encoding.UTF8.GetBytes("XYZ");
             byte[] full = Encoding.UTF8.GetBytes("ABCXYZ");
 
-            foreach (SimpleZLib z in _zlibs)
+            foreach (SymbolCoexist z in _zlibs)
             {
                 fixed (byte* firstBuf = first)
                 fixed (byte* secondBuf = second)
@@ -95,9 +100,9 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void Version()
+        public void CoexistVersion()
         {
-            foreach (SimpleZLib z in _zlibs)
+            foreach (SymbolCoexist z in _zlibs)
             {
                 string verStr = z.ZLibVersion();
                 Console.WriteLine(verStr);
@@ -105,81 +110,31 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void StdcallCreateDispose()
+        public void CoexistCreateDispose()
         {
-            string libPath = TestSetup.PackagedStdcallZLibPath;
-            using (SimpleZLib zlib = new SimpleZLib())
+            foreach (string libPath in _libPaths)
             {
-                zlib.LoadLibrary(libPath);
-                zlib.ZLibVersion();
+                using (SymbolCoexist zlib = new SymbolCoexist())
+                {
+                    zlib.LoadLibrary(libPath);
+                    zlib.ZLibVersion();
+                }
             }
         }
 
         [TestMethod]
-        public void CdeclCreateDispose()
+        public void CoexistCompareRawPtr()
         {
-            string libPath = TestSetup.PackagedCdeclZLibPath;
-            using (SimpleZLib zlib = new SimpleZLib())
-            {
-                zlib.LoadLibrary(libPath);
-                zlib.ZLibVersion();
-            }
-        }
+            SymbolCoexist u = TestSetup.UpstreamZLib;
+            SymbolCoexist n = TestSetup.NgCompatZLib;
 
-        [TestMethod]
-        public void StdcallManager()
-        {
-            string libPath = TestSetup.PackagedStdcallZLibPath;
-            ManagerTemplate(libPath, true);
-        }
+            Console.WriteLine($"{nameof(SymbolCoexist.adler32)}: upstream = 0x{u.Adler32RawPtr:X8}");
+            Console.WriteLine($"{nameof(SymbolCoexist.adler32)}: zlib-ng  = 0x{n.Adler32RawPtr:X8}");
+            Assert.AreNotEqual(u.Adler32RawPtr, n.Adler32RawPtr);
 
-        [TestMethod]
-        public void CdeclManager()
-        {
-            string libPath = TestSetup.PackagedCdeclZLibPath;
-            ManagerTemplate(libPath, false);
-        }
-
-        private static void ManagerTemplate(string libPath, bool isWindowsStdcall)
-        {
-            SimpleZLibManager manager = new SimpleZLibManager();
-            SimpleZLibLoadData loadData = new SimpleZLibLoadData()
-            {
-                IsWindowsStdcall = isWindowsStdcall,
-            };
-
-            bool dupInitGuard = false;
-            manager.GlobalInit(libPath, loadData);
-            try
-            {
-                manager.GlobalInit(loadData);
-            }
-            catch (InvalidOperationException)
-            {
-                dupInitGuard = true;
-            }
-            Assert.IsTrue(dupInitGuard);
-
-            Console.WriteLine(manager.Lib.ZLibVersion());
-            Console.WriteLine($"UnknownRawPtr = 0x{manager.Lib.UnknownRawPtr:X8}");
-            Console.WriteLine($"DeflateRawPtr = 0x{manager.Lib.DeflateRawPtr:X8}");
-
-            Assert.IsFalse(manager.Lib.HasUnknownSymbol);
-            Assert.IsTrue(manager.Lib.HasCrc32Symbol);
-            Assert.AreEqual(IntPtr.Zero, manager.Lib.UnknownRawPtr);
-            Assert.AreNotEqual(IntPtr.Zero, manager.Lib.DeflateRawPtr);
-
-            bool dupCleanGuard = false;
-            manager.GlobalCleanup();
-            try
-            {
-                manager.GlobalCleanup();
-            }
-            catch (InvalidOperationException)
-            {
-                dupCleanGuard = true;
-            }
-            Assert.IsTrue(dupCleanGuard);
+            Console.WriteLine($"{nameof(SymbolCoexist.crc32)}: upstream = 0x{u.Crc32RawPtr:X8}");
+            Console.WriteLine($"{nameof(SymbolCoexist.crc32)}: zlib-ng  = 0x{n.Crc32RawPtr:X8}");
+            Assert.AreNotEqual(u.Crc32RawPtr, n.Crc32RawPtr);
         }
     }
 }

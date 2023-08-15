@@ -59,7 +59,7 @@ namespace Joveler.DynLoader.Tests
             try
             {
                 GhostFunction lib = new GhostFunction();
-                lib.LoadLibrary(TestSetup.PackagedZLibPathStdcall);
+                lib.LoadLibrary(TestSetup.PackagedCdeclZLibPath);
             }
             catch (EntryPointNotFoundException e)
             {

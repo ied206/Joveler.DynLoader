@@ -143,7 +143,7 @@ namespace Joveler.DynLoader.Tests
             [UnmanagedFunctionPointer(CallConv)]
             public delegate IntPtr zlibVersion();
             internal zlibVersion ZLibVersionPtr;
-            
+
         }
         internal class Cdecl
         {
