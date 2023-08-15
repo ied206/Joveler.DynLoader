@@ -48,7 +48,7 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public unsafe void Adler32()
+        public unsafe void CoexistAdler32()
         {
             // ABC -> 0x018D00C7u
             // XYZ -> 0x0217010Cu
@@ -74,7 +74,7 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public unsafe void Crc32()
+        public unsafe void CoexistCrc32()
         {
             // ABC -> 0xA3830348u
             // XYZ -> 0x7D29F8EDu
@@ -100,7 +100,7 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void Version()
+        public void CoexistVersion()
         {
             foreach (SymbolCoexist z in _zlibs)
             {
@@ -110,7 +110,7 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void CreateDispose()
+        public void CoexistCreateDispose()
         {
             foreach (string libPath in _libPaths)
             {
@@ -123,7 +123,7 @@ namespace Joveler.DynLoader.Tests
         }
 
         [TestMethod]
-        public void CompareRawPtr()
+        public void CoexistCompareRawPtr()
         {
             SymbolCoexist u = TestSetup.UpstreamZLib;
             SymbolCoexist n = TestSetup.NgCompatZLib;

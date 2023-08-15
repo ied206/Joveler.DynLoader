@@ -17,6 +17,8 @@ namespace Joveler.DynLoader.Tests
         public SymbolCoexist() : base() { }
         #endregion
 
+        public string LoadedLibPath { get; private set; } = null;
+
         #region Properties
         protected override string DefaultLibFileName
         {
@@ -35,6 +37,7 @@ namespace Joveler.DynLoader.Tests
         protected override void LoadFunctions()
         {
             Console.WriteLine($"libPath = {LibPath}");
+            LoadedLibPath = LibPath;
 
             Adler32RawPtr = GetRawFuncPtr(nameof(adler32));
             Crc32RawPtr = GetRawFuncPtr(nameof(crc32));
