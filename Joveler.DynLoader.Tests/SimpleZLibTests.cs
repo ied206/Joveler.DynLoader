@@ -25,6 +25,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -107,7 +108,7 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void StdcallCreateDispose()
         {
-            string libPath = TestSetup.PackagedZLibPathStdcall;
+            string libPath = TestSetup.PackagedStdcallZLibPath;
             using (SimpleZLib zlib = new SimpleZLib())
             {
                 zlib.LoadLibrary(libPath);
@@ -118,7 +119,7 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void CdeclCreateDispose()
         {
-            string libPath = TestSetup.PackagedZLibPathCdecl;
+            string libPath = TestSetup.PackagedCdeclZLibPath;
             using (SimpleZLib zlib = new SimpleZLib())
             {
                 zlib.LoadLibrary(libPath);
@@ -129,18 +130,18 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void StdcallManager()
         {
-            string libPath = TestSetup.PackagedZLibPathStdcall;
+            string libPath = TestSetup.PackagedStdcallZLibPath;
             ManagerTemplate(libPath, true);
         }
 
         [TestMethod]
         public void CdeclManager()
         {
-            string libPath = TestSetup.PackagedZLibPathCdecl;
+            string libPath = TestSetup.PackagedCdeclZLibPath;
             ManagerTemplate(libPath, false);
         }
 
-        private void ManagerTemplate(string libPath, bool isWindowsStdcall)
+        private static void ManagerTemplate(string libPath, bool isWindowsStdcall)
         {
             SimpleZLibManager manager = new SimpleZLibManager();
             SimpleZLibLoadData loadData = new SimpleZLibLoadData()
@@ -180,6 +181,34 @@ namespace Joveler.DynLoader.Tests
                 dupCleanGuard = true;
             }
             Assert.IsTrue(dupCleanGuard);
+        }
+
+        [TestMethod]
+        public void DllNotFoundRetry()
+        {
+            string existLibPath = TestSetup.PackagedCdeclZLibPath;
+            string libDir = Path.GetDirectoryName(existLibPath);
+            string notExistLibPath = Path.Combine(libDir, "404_NOT_FOUND.dll");
+            Console.WriteLine($"First-load  libPath: {notExistLibPath}");
+            Console.WriteLine($"Second-load libPath: {existLibPath}");
+            
+            SimpleZLibManager manager = new SimpleZLibManager();
+            SimpleZLibLoadData loadData = new SimpleZLibLoadData()
+            {
+                IsWindowsStdcall = false,
+            };
+
+            bool catched = false;
+            try
+            {
+                manager.GlobalInit(notExistLibPath, loadData);
+            }
+            catch (DllNotFoundException)
+            {
+                catched = true;
+                manager.GlobalInit(existLibPath, loadData);
+            }
+            Assert.IsTrue(catched);
         }
     }
 }

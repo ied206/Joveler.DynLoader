@@ -181,10 +181,18 @@ namespace Joveler.DynLoader
                 if (Lib != null)
                     throw new InvalidOperationException(ErrorMsgAlreadyLoaded);
 
-                Lib = CreateLoader();
-                PreInitHook();
-                Lib.LoadLibrary(libPath, loadData);
-                PostInitHook();
+                try
+                {
+                    Lib = CreateLoader();
+                    PreInitHook();
+                    Lib.LoadLibrary(libPath, loadData);
+                    PostInitHook();
+                }
+                catch
+                {
+                    Lib = null;
+                    throw;
+                }
             }
         }
 
@@ -200,8 +208,8 @@ namespace Joveler.DynLoader
 
                 PreDisposeHook();
                 Lib.Dispose();
-                Lib = null;
                 PostDisposeHook();
+                Lib = null;
             }
         }
         #endregion
