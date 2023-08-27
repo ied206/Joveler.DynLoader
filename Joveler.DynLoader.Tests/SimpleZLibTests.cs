@@ -25,6 +25,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -180,6 +181,34 @@ namespace Joveler.DynLoader.Tests
                 dupCleanGuard = true;
             }
             Assert.IsTrue(dupCleanGuard);
+        }
+
+        [TestMethod]
+        public void DllNotFoundRetry()
+        {
+            string existLibPath = TestSetup.PackagedStdcallZLibPath;
+            string libDir = Path.GetDirectoryName(existLibPath);
+            string notExistLibPath = Path.Combine(libDir, "404_NOT_FOUND.dll");
+            Console.WriteLine($"First-load  libPath: {notExistLibPath}");
+            Console.WriteLine($"Second-load libPath: {existLibPath}");
+            
+            SimpleZLibManager manager = new SimpleZLibManager();
+            SimpleZLibLoadData loadData = new SimpleZLibLoadData()
+            {
+                IsWindowsStdcall = true,
+            };
+
+            bool catched = false;
+            try
+            {
+                manager.GlobalInit(notExistLibPath, loadData);
+            }
+            catch (DllNotFoundException)
+            {
+                catched = true;
+                manager.GlobalInit(existLibPath, loadData);
+            }
+            Assert.IsTrue(catched);
         }
     }
 }
