@@ -783,7 +783,6 @@ internal class Utf8d
     internal delegate ErrorCode wimlib_set_error_file_by_name(
         [MarshalAs(StrType)] string path);
     internal wimlib_set_error_file_by_name SetErrorFile;
-    #endregion
 }
 
 internal class Utf16d
@@ -794,7 +793,6 @@ internal class Utf16d
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal delegate ErrorCode wimlib_set_error_file_by_name([MarshalAs(StrType)] string path);
     internal wimlib_set_error_file_by_name SetErrorFile;
-    #endregion
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -821,3 +819,217 @@ public struct CaptureSourceBaseL64
     public string WimTargetPath;
 };
 ```
+
+### Handling two or more sets of delegates
+
+When the C library is compiled into two or more ABIs, we must create multiple C# representations, too. Declaring more than one set causes headaches in code maintainability, and it gets more complicated when the structs must be separated.
+
+Many topics in this document fall into this category:
+
+- Handling `C-type long` in .NET Framework.
+- Supporting both `cdecl` and `stdcall` ABI of the C library.
+- Supporting both `UTF-8` and `UTF-16` ABI of the C library.
+
+There are two ways to handle this:
+
+- Branch-based: Use a simple if-else clause to handle multiple ABIs.
+    - Much simpler to write, but prone to human mistake when C functions have to be invoked multiple times.
+- VTable-based: Use inheritance to handle multiple ABIs.
+    - Writing classes may introduce boilerplate code, but you will get much better maintainability.
+
+Let us assume we need to p/invoke this C code:
+
+```c
+typedef struct jvl_sample_s
+{
+    long long_val;
+} jvl_sample;
+
+long foo(jvl_sample bar);
+```
+
+In branch-based code, function and struct signature writing is relatively simple. But each C function invocation code requires its condition check. This opens up a surface for mistakes.
+
+```csharp
+[StructLayout(LayoutKind.Sequential)]
+public class SampleL32
+{
+    public int LongVal;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public class SampleL64
+{
+    public long LongVal;
+}
+
+public class SampleLoader : DynLoaderBase
+{
+    public L32 L32i;
+    public L64 L64i;
+
+    internal class L32
+    {
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate int foo(SampleL32 sample);
+        internal foo Foo;
+    }
+
+    internal class L64
+    {
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate long foo(SampleL64 sample);
+        internal foo Foo;
+    }
+
+    public void LoadFunctions()
+    {
+        if (Lib.PlatformLongSize == PlatformLongSize.Long32)
+            L32i.Foo = GetFuncPtr<L32.foo>(nameof(L32.foo));
+        else if (Lib.PlatformLongSize == PlatformLongSize.Long64)
+            L64i.Foo = GetFuncPtr<L32.foo>(nameof(L64.foo));
+        else
+            throw new PlatformNotSupportedException();
+    }
+}
+...
+public class BusinessLogic
+{
+    public long CallSample(long val)
+    {
+        // Man is LoadManagerBase<SampleLoader> type
+        if (Man.Lib.PlatformLongSize == PlatformLongSize.Long32)
+        {
+            SampleL32 sample = new SampleL32() { LongVal = (int)val };
+            return (int)Man.Lib.L32.Foo(sample);
+        }
+        else if (Man.Lib.PlatformLongSize == PlatformLongSize.Long64)
+        {
+            SampleL64 sample = new SampleL64() { LongVal = val };
+            return Man.Lib.L64.Foo(sample);
+        }
+        else
+        {
+            throw new PlatformNotSupportedException();
+        }
+    }
+}
+
+```
+
+In vtable-based code, condition check is performed only once at instance creation time. However, we need to prepare many classes with inheritance relations.
+
+```csharp
+[StructLayout(LayoutKind.Sequential)]
+public abstract class Sample
+{
+    public abstract int LongVal;
+
+    public static Sample Create(long val)
+    {
+        if (Lib.PlatformLongSize == PlatformLongSize.Long32)
+            return new SampleL32() { LongVal = val };
+        else if (Lib.PlatformLongSize == PlatformLongSize.Long64)
+            return new SampleL64() { LongVal = val };
+        else
+            throw new PlatformNotSupportedException();
+    }
+}
+[StructLayout(LayoutKind.Sequential)]
+public sealed class SampleL32
+{
+    public override int LongVal
+    {
+        get => _val;
+        set => _val = true;
+    }
+    private int _val;
+}
+[StructLayout(LayoutKind.Sequential)]
+public sealed class SampleL64
+{
+    public override int LongVal
+    {
+        get => (int)_val;
+        set => _val = true;
+    }
+    private long _val;
+}
+...
+public class SampleLoader : DynLoaderBase
+{
+    public NativeAbi Abi;
+
+    public abstract class NativeAbi
+    {
+        public abstract void LoadFunctions();
+        public abstract void ResetFunctions();
+
+        public abstract long Foo(Sample sample);
+    }
+    public sealed class NativeAbiL32 : NativeAbi
+    {
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate int foo(SampleL32 sample);
+        internal foo FooPtr;
+
+        public override void LoadFunctions()
+        {
+            FooPtr = GetFuncPtr<foo>(nameof(foo));
+        }
+        public override void ResetFunctions()
+        {
+            FooPtr = null;
+        }
+
+        public override long Foo(Sample sample)
+        {
+            return FooPtr((SampleL32)sample);
+        }
+    }
+    public sealed class NativeAbiL64 : NativeAbi
+    {
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate long foo(SampleL64 sample);
+        internal foo FooPtr;
+
+        public override void LoadFunctions()
+        {
+            FooPtr = GetFuncPtr<foo>(nameof(foo));
+        }
+        public override void ResetFunctions()
+        {
+            FooPtr = null;
+        }
+
+        public override long Foo(Sample sample)
+        {
+            return FooPtr((SampleL64)sample);
+        }
+    }
+    
+    public void LoadFunctions()
+    {
+        if (Lib.PlatformLongSize == PlatformLongSize.Long32)
+            NativeAbi = new NativeAbiL32();
+        else if (Lib.PlatformLongSize == PlatformLongSize.Long64)
+            NativeAbi = new NativeAbiL64();
+        else
+            throw new PlatformNotSupportedException();
+    }
+}
+...
+public class BusinessLogic
+{
+    public long CallSample(long val)
+    {
+        // Man is LoadManagerBase<SampleLoader> type
+        Sample sample = Sample.Create(val);
+        return Man.Lib.NativeAbi.Foo(sample);
+    }
+}
+```
+
+In my testing, both methods show equal performance in when done right.
+
+Select a method following your need: code writing time or maintainability.
