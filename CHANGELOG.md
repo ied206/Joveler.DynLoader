@@ -6,7 +6,7 @@
 
 Released on 2023-08-28.
 
-- Fix failing second call of `LoadManagerBase<T>.GlobalInit()` if the first call throwed an exception.
+- Fix failing the second call of `LoadManagerBase<T>.GlobalInit()` if the first call throws an exception.
 
 ### v2.2.0
 
