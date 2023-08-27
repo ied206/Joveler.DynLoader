@@ -186,7 +186,7 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void DllNotFoundRetry()
         {
-            string existLibPath = TestSetup.PackagedStdcallZLibPath;
+            string existLibPath = TestSetup.PackagedCdeclZLibPath;
             string libDir = Path.GetDirectoryName(existLibPath);
             string notExistLibPath = Path.Combine(libDir, "404_NOT_FOUND.dll");
             Console.WriteLine($"First-load  libPath: {notExistLibPath}");
@@ -195,7 +195,7 @@ namespace Joveler.DynLoader.Tests
             SimpleZLibManager manager = new SimpleZLibManager();
             SimpleZLibLoadData loadData = new SimpleZLibLoadData()
             {
-                IsWindowsStdcall = true,
+                IsWindowsStdcall = false,
             };
 
             bool catched = false;
