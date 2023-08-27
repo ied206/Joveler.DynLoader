@@ -1030,6 +1030,6 @@ public class BusinessLogic
 }
 ```
 
-In my testing, both methods show equal performance in when done right.
+In my testing, both methods show nearly equal performance in when done right.
 
 Select a method following your need: code writing time or maintainability.
