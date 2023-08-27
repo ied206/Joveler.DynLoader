@@ -735,7 +735,7 @@ internal static LZ4F_getFrameInfo GetFrameInfo;
 
 ### Data model and `long` size
 
-**Recommended Workaround**: If the native library use `long` in its APIs, declare two sets of delegates, the LP64 model for POSIX 64bit and LLP64 for the other.
+**Recommended Workaround until .NET 6**: If the native library use `long` in its APIs, declare two sets of delegates, the LP64 model for POSIX 64bit and LLP64 for the other.
 
 In 64bit, `long` can have different sizes per target OS and architecture. Windows uses the LLP64 data model (long is 32bit) on 64bit arch, while the POSIX use LP64 (long is 64bit).
 
@@ -744,6 +744,10 @@ If a native library uses `long` in the exported functions, there is no simple so
 Some libraries with a long history (e.g., zlib) have this problem. Fortunately, many modern cross-platform libraries tend to use types of `<stdint.h>` or similar so that they can ensure stable type size across platforms. 
 
 **Example**: [Joveler.Compression.ZLib](https://www.nuget.org/packages/Joveler.Compression.ZLib) applied this workaround.
+
+**Recommended Workaround since .NET 6**: Use [CLong](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.clong) and [CULong](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.culong).
+
+Since .NET 6, .NET introduced [CLong](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.clong) and [CULong](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.culong) structs to handle `C-type long`. Using them make them representable with one delegate.
 
 ### String encoding
 
