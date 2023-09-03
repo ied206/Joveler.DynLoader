@@ -53,6 +53,9 @@ namespace Joveler.DynLoader
         #endregion
 
         #region Thread-Safe Load Lock Management
+        /// <summary>
+        /// Lock object for thread synchronization.
+        /// </summary>
         private readonly object _loadLock = new object();
         /// <summary>
         /// Is the library loaded?
@@ -69,7 +72,7 @@ namespace Joveler.DynLoader
         }
 
         /// <summary>
-        /// Ensure that the library have been loaded.
+        /// Ensure that the library has been loaded.
         /// </summary>
         public void EnsureLoaded()
         {
@@ -81,7 +84,7 @@ namespace Joveler.DynLoader
         }
 
         /// <summary>
-        /// Ensure that the library have not been loaded yet.
+        /// Ensure that the library has not been loaded yet.
         /// </summary>
         public void EnsureNotLoaded()
         {
@@ -93,7 +96,7 @@ namespace Joveler.DynLoader
         }
         #endregion
 
-        #region Init and Cleanup Methods
+        #region CreateLoader
         /// <summary>
         /// Represents parameter-less constructor of DynLoaderBase.
         /// </summary>
@@ -103,7 +106,7 @@ namespace Joveler.DynLoader
         /// <returns>DynLoaderBase instace</returns>
         protected abstract T CreateLoader();
         /// <summary>
-        /// Represents constructor of DynLoaderBase with a `libPath` parameter.
+        /// (DEPRECATED) Represents constructor of DynLoaderBase with a `libPath` parameter.
         /// </summary>
         /// <remarks>
         /// Called in GlobalInit(string libPath).
@@ -114,15 +117,18 @@ namespace Joveler.DynLoader
         {
             return CreateLoader();
         }
+        #endregion
+
+        #region Hooks
         /// <summary>
-        /// Allocate other external resources before CreateLoader get called.
+        /// Allocate other external resources before CreateLoader() get called.
         /// </summary>
         /// <remarks>
         /// Called in GlobalInit().
         /// </remarks>
         protected virtual void PreInitHook() { }
         /// <summary>
-        /// Allocate other external resources after CreateLoader get called.
+        /// Allocate other external resources after CreateLoader() get called.
         /// </summary>
         /// <remarks>
         /// Called in GlobalInit().
@@ -142,10 +148,15 @@ namespace Joveler.DynLoader
         /// Called in GlobalCleanup().
         /// </remarks>
         protected virtual void PostDisposeHook() { }
+        #endregion
 
+        #region GlobalInit
         /// <summary>
         /// Create DynLoaderBase singleton instance in a thread-safe way.
         /// </summary>
+        /// <remarks>
+        /// Throws an InvalidOperationException when a native library has already been loaded.
+        /// </remarks>
         public void GlobalInit()
         {
             GlobalInit(null, null);
@@ -154,6 +165,9 @@ namespace Joveler.DynLoader
         /// <summary>
         /// Create DynLoaderBase singleton instance in a thread-safe way.
         /// </summary>
+        /// <remarks>
+        /// Throws an InvalidOperationException when a native library has already been loaded.
+        /// </remarks>
         /// <param name="libPath">A native library file to load.</param>
         public void GlobalInit(string libPath)
         {
@@ -163,6 +177,9 @@ namespace Joveler.DynLoader
         /// <summary>
         /// Create DynLoaderBase singleton instance in a thread-safe way, with a custom object.
         /// </summary>
+        /// <remarks>
+        /// Throws an InvalidOperationException when a native library has already been loaded.
+        /// </remarks>
         /// <param name="loadData">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
         public void GlobalInit(object loadData)
         {
@@ -172,6 +189,9 @@ namespace Joveler.DynLoader
         /// <summary>
         /// Create DynLoaderBase singleton instance in a thread-safe way, with a custom object.
         /// </summary>
+        /// <remarks>
+        /// Throws an InvalidOperationException when a native library has already been loaded.
+        /// </remarks>
         /// <param name="libPath">A native library file to load.</param>
         /// <param name="loadData">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
         public void GlobalInit(string libPath, object loadData)
@@ -195,10 +215,15 @@ namespace Joveler.DynLoader
                 }
             }
         }
+        #endregion
 
+        #region GlobalCleanup
         /// <summary>
         /// Dispose DynLoaderBase singleton instance in a thread-safe way.
         /// </summary>
+        /// <remarks>
+        /// Throws an InvalidOperationException when a native library has not been loaded.
+        /// </remarks>
         public void GlobalCleanup()
         {
             lock (_loadLock)
@@ -206,11 +231,37 @@ namespace Joveler.DynLoader
                 if (Lib == null)
                     throw new InvalidOperationException(ErrorMsgInitFirst);
 
-                PreDisposeHook();
-                Lib.Dispose();
-                PostDisposeHook();
-                Lib = null;
+                InternalCleanup();
             }
+        }
+
+        /// <summary>
+        /// Dispose DynLoaderBase singleton instance in a thread-safe way.
+        /// </summary>
+        /// <remarks>
+        /// Use this method to make sure that there is no loaded native library.
+        /// </remarks>
+        /// <returns>
+        /// Returns true when succeeded to unload, and false when a native library has not been loaded.
+        /// </returns>
+        public bool TryGlobalCleanup()
+        {
+            lock (_loadLock)
+            {
+                if (Lib == null)
+                    return false;
+
+                InternalCleanup();
+                return true;
+            }
+        }
+
+        private void InternalCleanup()
+        {
+            PreDisposeHook();
+            Lib.Dispose();
+            PostDisposeHook();
+            Lib = null;
         }
         #endregion
     }

@@ -2,6 +2,13 @@
 
 ## v2.x
 
+### v2.3.0
+
+Released on 2023-09-03.
+
+- Add `LoadManagerBase<T>.TryGlobalCleanup()`.
+    - It is useful when you want to ensure that there is no loaded native library in the manager.
+
 ### v2.2.1
 
 Released on 2023-08-28.
