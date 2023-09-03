@@ -4,7 +4,7 @@
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <PackageId>Joveler.DynLoader</PackageId>
     <Title>Joveler.DynLoader</Title>
-    <Version>2.2.1</Version>
+    <Version>2.3.0</Version>
     <Authors>Hajin Jang</Authors>
     <Company>Joveler</Company>
     <Description>Cross-platform native dynamic library loader for .NET.
@@ -15,8 +15,9 @@ Supports Windows, Linux, and macOS.</Description>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
     <RepositoryUrl>https://github.com/ied206/Joveler.DynLoader</RepositoryUrl>
-    <PackageReleaseNotes>- Fix failing second call of GlobalInit() if the first call throwed an exception.</PackageReleaseNotes>
+    <PackageReleaseNotes>- Add LoadManagerBase.TryGlobalCleanup().</PackageReleaseNotes>
     <PackageTags>native pinvoke interop dynamic library loader dll so dylib</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <!-- PackageReference -->
   <ItemGroup>
@@ -25,7 +26,7 @@ Supports Windows, Linux, and macOS.</Description>
    <!-- NuGet Pacakge -->
   <ItemGroup>
     <!-- Nuget README -->
-    <None Include="NUGET_README.md" Pack="true" PackagePath="\README.md"/>
+    <None Include="NUGET_README.md" Pack="true" PackagePath="\README.md" />
     <!-- NuGet Pacakge Icon -->
     <None Include="..\Image\Logo.png" Pack="true" PackagePath="images\" />
   </ItemGroup>

@@ -131,17 +131,17 @@ namespace Joveler.DynLoader.Tests
         public void StdcallManager()
         {
             string libPath = TestSetup.PackagedStdcallZLibPath;
-            ManagerTemplate(libPath, true);
+            ManagerTemplate(libPath, true, true);
         }
 
         [TestMethod]
         public void CdeclManager()
         {
             string libPath = TestSetup.PackagedCdeclZLibPath;
-            ManagerTemplate(libPath, false);
+            ManagerTemplate(libPath, false, false);
         }
 
-        private static void ManagerTemplate(string libPath, bool isWindowsStdcall)
+        private static void ManagerTemplate(string libPath, bool isWindowsStdcall, bool useTryCleanup)
         {
             SimpleZLibManager manager = new SimpleZLibManager();
             SimpleZLibLoadData loadData = new SimpleZLibLoadData()
@@ -171,16 +171,30 @@ namespace Joveler.DynLoader.Tests
             Assert.AreNotEqual(IntPtr.Zero, manager.Lib.DeflateRawPtr);
 
             bool dupCleanGuard = false;
-            manager.GlobalCleanup();
-            try
+            if (useTryCleanup)
             {
+                Assert.IsTrue(manager.Loaded);
+                Assert.IsTrue(manager.TryGlobalCleanup());
+                Assert.IsFalse(manager.Loaded);
+                Assert.IsFalse(manager.TryGlobalCleanup());
+                Assert.IsFalse(manager.Loaded);
+            }
+            else
+            {
+                Assert.IsTrue(manager.Loaded);
                 manager.GlobalCleanup();
+                Assert.IsFalse(manager.Loaded);
+                try
+                {
+                    manager.GlobalCleanup();
+                }
+                catch (InvalidOperationException)
+                {
+                    dupCleanGuard = true;
+                }
+                Assert.IsTrue(dupCleanGuard);
+                Assert.IsFalse(manager.Loaded);
             }
-            catch (InvalidOperationException)
-            {
-                dupCleanGuard = true;
-            }
-            Assert.IsTrue(dupCleanGuard);
         }
 
         [TestMethod]
@@ -209,6 +223,38 @@ namespace Joveler.DynLoader.Tests
                 manager.GlobalInit(existLibPath, loadData);
             }
             Assert.IsTrue(catched);
+
+            if (manager.Loaded)
+                manager.GlobalCleanup();
+        }
+
+        [TestMethod]
+        public void TryGlobalCleanup()
+        {
+            string existLibPath = TestSetup.PackagedCdeclZLibPath;
+            string libDir = Path.GetDirectoryName(existLibPath);
+            string notExistLibPath = Path.Combine(libDir, "404_NOT_FOUND.dll");
+
+            SimpleZLibManager manager = new SimpleZLibManager();
+            SimpleZLibLoadData loadData = new SimpleZLibLoadData()
+            {
+                IsWindowsStdcall = false,
+            };
+
+            bool catched = false;
+            try
+            {
+                manager.GlobalInit(notExistLibPath, loadData);
+            }
+            catch (DllNotFoundException)
+            {
+                catched = true;
+            }
+            Assert.IsTrue(catched);
+
+            // LoadManager must not ne loaded after throwing DllNotFoundException
+            Assert.IsFalse(manager.Loaded);
+            Assert.IsFalse(manager.TryGlobalCleanup());
         }
     }
 }
