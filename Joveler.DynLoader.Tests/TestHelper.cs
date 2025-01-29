@@ -20,8 +20,8 @@ namespace Joveler.DynLoader.Tests
         private static readonly object TempPathLock = new object();
         private static readonly RandomNumberGenerator SecureRandom = RandomNumberGenerator.Create();
 
-        private static FileStream _lockFileStream = null;
-        private static string _baseTempDir = null;
+        private static FileStream? _lockFileStream = null;
+        private static string? _baseTempDir = null;
         public static string BaseTempDir()
         {
             lock (TempPathLock)
@@ -105,7 +105,7 @@ namespace Joveler.DynLoader.Tests
         /// <remarks>
         /// Returned temp file path is unique per call unless this method is called uint.MaxValue times.
         /// </remarks>
-        public static string GetTempFile(string ext = null)
+        public static string GetTempFile(string? ext = null)
         {
             return GetTempFile(null, ext);
         }
@@ -117,7 +117,7 @@ namespace Joveler.DynLoader.Tests
         /// <remarks>
         /// Returned temp file path is unique per call unless this method is called uint.MaxValue times.
         /// </remarks>
-        public static string GetTempFile(string baseName, string ext)
+        public static string GetTempFile(string? baseName, string? ext)
         {
             // Never call BaseTempDir in the _tempPathLock, it would cause a deadlock!
             string baseTempDir = BaseTempDir();
@@ -159,7 +159,7 @@ namespace Joveler.DynLoader.Tests
         /// <remarks>
         /// Returned temp file path is unique per call unless this method is called uint.MaxValue times.
         /// </remarks>
-        public static string ReserveTempFile(string ext = null)
+        public static string ReserveTempFile(string? ext = null)
         {
             // Never call BaseTempDir in the _tempPathLock, it would cause a deadlock!
             string baseTempDir = BaseTempDir();

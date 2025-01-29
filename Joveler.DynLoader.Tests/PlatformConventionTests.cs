@@ -159,9 +159,9 @@ namespace Joveler.DynLoader.Tests
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     // PtrToStringAuto
-                    string fromUniStr = defaultInstance.PtrToStringAuto(utf16Ptr);
+                    string? fromUniStr = defaultInstance.PtrToStringAuto(utf16Ptr);
                     Assert.IsTrue(str.Equals(fromUniStr, StringComparison.Ordinal));
-                    string fromAnsiStr = customInstance.PtrToStringAuto(ansiUtf8Ptr);
+                    string? fromAnsiStr = customInstance.PtrToStringAuto(ansiUtf8Ptr);
                     Assert.IsTrue(str.Equals(fromAnsiStr, StringComparison.Ordinal));
 
                     // StringToHGlobalAuto
@@ -211,7 +211,7 @@ namespace Joveler.DynLoader.Tests
                 else
                 {
                     // PtrToStringAuto
-                    string fromUtf8Str = defaultInstance.PtrToStringAuto(ansiUtf8Ptr);
+                    string? fromUtf8Str = defaultInstance.PtrToStringAuto(ansiUtf8Ptr);
                     Assert.IsTrue(str.Equals(fromUtf8Str, StringComparison.Ordinal));
                     fromUtf8Str = customInstance.PtrToStringAuto(ansiUtf8Ptr);
                     Assert.IsTrue(str.Equals(fromUtf8Str, StringComparison.Ordinal));

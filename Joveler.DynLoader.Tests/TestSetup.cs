@@ -35,23 +35,23 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class TestSetup
     {
-        public static string SampleDir { get; private set; } = null;
-        public static string PackagedStdcallZLibPath { get; private set; } = null;
-        public static string PackagedCdeclZLibPath { get; private set; } = null;
-        public static string PackagedNgCompatZLibPath { get; private set; } = null;
-        public static SimpleZLib ExplicitStdcallZLib { get; private set; } = null;
-        public static SimpleZLib ExplicitCdeclZLib { get; private set; } = null;
-        public static SimpleZLib ImplicitZLib { get; private set; } = null;
-        public static string PackagedMagicPath { get; private set; } = null;
-        public static SimpleFileMagic ExplicitMagic { get; private set; } = null;
-        public static SimpleFileMagic ImplicitMagic { get; private set; } = null;
-        public static SimplePlatform PlatformLib { get; private set; } = null;
-        public static string TempUpstreamZLibDir { get; private set; } = null;
-        public static string TempUpstreamZLibPath { get; private set; } = null;
-        public static string TempNgCompatZLibDir { get; private set; } = null;
-        public static string TempNgCompatZLibPath { get; private set; } = null;
-        public static SymbolCoexist UpstreamZLib { get; private set; } = null;
-        public static SymbolCoexist NgCompatZLib { get; private set; } = null;
+        public static string? SampleDir { get; private set; } = null;
+        public static string? PackagedStdcallZLibPath { get; private set; } = null;
+        public static string PackagedCdeclZLibPath { get; private set; } = string.Empty;
+        public static string PackagedNgCompatZLibPath { get; private set; } = string.Empty;
+        public static SimpleZLib? ExplicitStdcallZLib { get; private set; } = null;
+        public static SimpleZLib? ExplicitCdeclZLib { get; private set; } = null;
+        public static SimpleZLib? ImplicitZLib { get; private set; } = null;
+        public static string PackagedMagicPath { get; private set; } = string.Empty;
+        public static SimpleFileMagic? ExplicitMagic { get; private set; } = null;
+        public static SimpleFileMagic? ImplicitMagic { get; private set; } = null;
+        public static SimplePlatform? PlatformLib { get; private set; } = null;
+        public static string TempUpstreamZLibDir { get; private set; } = string.Empty;
+        public static string TempUpstreamZLibPath { get; private set; } = string.Empty;
+        public static string TempNgCompatZLibDir { get; private set; } = string.Empty;
+        public static string TempNgCompatZLibPath { get; private set; } = string.Empty;
+        public static SymbolCoexist? UpstreamZLib { get; private set; } = null;
+        public static SymbolCoexist? NgCompatZLib { get; private set; } = null;
 
         #region AssemblyInitalize, AssemblyCleanup
         [AssemblyInitialize]
@@ -77,7 +77,7 @@ namespace Joveler.DynLoader.Tests
             TempUpstreamZLibDir = TestHelper.GetTempDir();
             TempNgCompatZLibDir = TestHelper.GetTempDir();
 
-            string arch = null;
+            string? arch = null;
             switch (RuntimeInformation.ProcessArchitecture)
             {
                 case Architecture.X86:
@@ -92,6 +92,8 @@ namespace Joveler.DynLoader.Tests
                 case Architecture.Arm64:
                     arch = "arm64";
                     break;
+                default:
+                    throw new PlatformNotSupportedException();
             }
 
             bool implicitLoadZLib = false;

@@ -17,7 +17,7 @@ namespace Joveler.DynLoader.Tests
         public SymbolCoexist() : base() { }
         #endregion
 
-        public string LoadedLibPath { get; private set; } = null;
+        public string LoadedLibPath { get; private set; } = string.Empty;
 
         #region Properties
         protected override string DefaultLibFileName
@@ -28,8 +28,8 @@ namespace Joveler.DynLoader.Tests
             }
         }
 
-        public IntPtr Adler32RawPtr { get; private set; } = IntPtr.Zero;
-        public IntPtr Crc32RawPtr { get; private set; } = IntPtr.Zero;
+        public IntPtr? Adler32RawPtr { get; private set; } = IntPtr.Zero;
+        public IntPtr? Crc32RawPtr { get; private set; } = IntPtr.Zero;
         #endregion
 
         #region LoadFunctions, ResetFunctions
@@ -59,17 +59,23 @@ namespace Joveler.DynLoader.Tests
         #region zlib Function Pointers
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
-        public adler32 Adler32;
+        public adler32? Adler32;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public unsafe delegate uint crc32(uint crc, byte* buf, uint len);
-        public crc32 Crc32;
+        public crc32? Crc32;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate IntPtr zlibVersion();
-        internal zlibVersion ZLibVersionPtr;
+        internal zlibVersion? ZLibVersionPtr;
 
-        public string ZLibVersion() => Marshal.PtrToStringAnsi(ZLibVersionPtr());
+        public string ZLibVersion()
+        {
+            if (ZLibVersionPtr == null)
+                return string.Empty;
+
+            return Marshal.PtrToStringAnsi(ZLibVersionPtr()) ?? string.Empty;
+        }
         #endregion
     }
 }

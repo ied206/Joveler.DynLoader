@@ -32,13 +32,13 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class SimpleFileMagicTests
     {
-        private static SimpleFileMagic[] _magicLibs;
+        private static SimpleFileMagic[] _magicLibs = [];
 
         [ClassInitialize]
         public static void Init(TestContext _)
         {
-            _magicLibs = new SimpleFileMagic[] { TestSetup.ExplicitMagic, TestSetup.ImplicitMagic };
-            _magicLibs = _magicLibs.Where(m => m != null).ToArray();
+            SimpleFileMagic?[] libs = [TestSetup.ExplicitMagic, TestSetup.ImplicitMagic];
+            _magicLibs = libs.Where(m => m != null).Select(m => m!).ToArray();
         }
 
         [TestMethod]
@@ -46,6 +46,8 @@ namespace Joveler.DynLoader.Tests
         {
             foreach (SimpleFileMagic m in _magicLibs)
             {
+                Assert.IsNotNull(m.MagicVersion);
+
                 int verInt = m.MagicVersion();
                 Console.WriteLine(verInt);
             }
@@ -59,6 +61,9 @@ namespace Joveler.DynLoader.Tests
             using (SimpleFileMagic m = new SimpleFileMagic())
             {
                 m.LoadLibrary(libPath);
+
+                Assert.IsNotNull(m.MagicVersion);
+
                 m.MagicVersion();
             }
         }
@@ -90,6 +95,8 @@ namespace Joveler.DynLoader.Tests
             }
             Assert.IsTrue(dupInitGuard);
 
+            Assert.IsNotNull(manager.Lib);
+            Assert.IsNotNull(manager.Lib.MagicVersion);
             manager.Lib.MagicVersion();
 
             bool dupCleanGuard = false;

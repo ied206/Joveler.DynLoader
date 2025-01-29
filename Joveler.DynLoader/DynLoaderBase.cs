@@ -100,7 +100,7 @@ namespace Joveler.DynLoader
         /// Create an instance of DynLoaderBase, and set platform conventions.
         /// </summary>
         [Obsolete("Left as ABI compatibility only, remove its override.")]
-        protected DynLoaderBase(string libPath) : this() { }
+        protected DynLoaderBase(string? libPath) : this() { }
         #endregion
 
         #region Disposable Pattern
@@ -206,7 +206,7 @@ namespace Joveler.DynLoader
                     // Unable to load DLL 'ᄒᆞᆫ글ḀḘ韓國Ghost.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)
                     string exceptMsg = $"Unable to load DLL '{libPath}' or one of its dependencies";
                     int errorCode = Marshal.GetLastWin32Error();
-                    string errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
+                    string? errorMsg = NativeMethods.Win32.GetLastErrorMsg(errorCode);
                     if (string.IsNullOrWhiteSpace(errorMsg))
                         throw new DllNotFoundException($"{exceptMsg}: (0x{errorCode:X8})");
                     else
@@ -221,7 +221,7 @@ namespace Joveler.DynLoader
                     // Sample message of .NET Core 3.1's NativeLoader:
                     // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.so' or one of its dependencies. In order to help diagnose loading problems, consider setting the LD_DEBUG environment variable: ᄒᆞᆫ글ḀḘ韓國Ghost.so: cannot open shared object file: No such file or directory
                     string exceptMsg = $"Unable to load shared library '{libPath}' or one of its dependencies";
-                    string errorMsg = NativeMethods.Linux.DLError();
+                    string? errorMsg = NativeMethods.Linux.DLError();
                     if (string.IsNullOrWhiteSpace(errorMsg))
                         throw new DllNotFoundException($"{exceptMsg}.");
                     else
@@ -236,7 +236,7 @@ namespace Joveler.DynLoader
                     // Sample message of .NET Core 3.1's NativeLoader:
                     // Unable to load shared library 'ᄒᆞᆫ글ḀḘ韓國Ghost.dylib' or one of its dependencies. In order to help diagnose loading problems, consider setting the DYLD_PRINT_LIBRARIES environment variable: dlopen(ᄒᆞᆫ글ḀḘ韓國Ghost.dylib, 1): image not found
                     string exceptMsg = $"Unable to load shared library '{libPath}' or one of its dependencies";
-                    string errorMsg = NativeMethods.Mac.DLError();
+                    string? errorMsg = NativeMethods.Mac.DLError();
                     if (string.IsNullOrWhiteSpace(errorMsg))
                         throw new DllNotFoundException($"{exceptMsg}.");
                     else
@@ -319,7 +319,7 @@ namespace Joveler.DynLoader
                     // Sample message of .NET Core 3.1's NativeLoader:
                     // Unable to find an entry point named 'not_exist' in shared library.
                     string exceptMsg = $"Unable to find an entry point named '{funcSymbol}' in shared library";
-                    string errorMsg = NativeMethods.Linux.DLError();
+                    string? errorMsg = NativeMethods.Linux.DLError();
                     if (string.IsNullOrWhiteSpace(errorMsg))
                         throw new EntryPointNotFoundException($"{exceptMsg}.");
                     else
@@ -334,7 +334,7 @@ namespace Joveler.DynLoader
                     // Sample message of .NET Core 3.1's NativeLoader:
                     // Unable to find an entry point named 'not_exist' in shared library.
                     string exceptMsg = $"Unable to find an entry point named '{funcSymbol}' in shared library";
-                    string errorMsg = NativeMethods.Mac.DLError();
+                    string? errorMsg = NativeMethods.Mac.DLError();
                     if (string.IsNullOrWhiteSpace(errorMsg))
                         throw new EntryPointNotFoundException($"{exceptMsg}.");
                     else
@@ -479,7 +479,7 @@ namespace Joveler.DynLoader
         /// </remarks>
         /// <param name="ptr">Buffer pointer to convert to string</param>
         /// <returns>Converted string.</returns>
-        public string PtrToStringAuto(IntPtr ptr)
+        public string? PtrToStringAuto(IntPtr ptr)
         {
             if (ptr == IntPtr.Zero)
                 return string.Empty;
@@ -502,7 +502,7 @@ namespace Joveler.DynLoader
         /// </remarks>
         /// <param name="str">String to convert</param>
         /// <returns>IntPtr of the string buffer. You must call Marshal.FreeHGlobal() with returned pointer to prevent memory leak.</returns>
-        public IntPtr StringToHGlobalAuto(string str)
+        public IntPtr StringToHGlobalAuto(string? str)
         {
             switch (UnicodeConvention)
             {
@@ -522,7 +522,7 @@ namespace Joveler.DynLoader
         /// </remarks>
         /// <param name="str">String to convert</param>
         /// <returns>IntPtr of the string buffer. You must call Marshal.FreeCoTaskMem() with returned pointer to prevent memory leak.</returns>
-        public IntPtr StringToCoTaskMemAuto(string str)
+        public IntPtr StringToCoTaskMemAuto(string? str)
         {
             switch (UnicodeConvention)
             {

@@ -71,11 +71,16 @@ namespace Joveler.DynLoader.Tests
         private unsafe delegate int GetFullPathNameW(string lpFileName, int nBufferLength, StringBuilder lpBuffer, IntPtr lpFilePart);
         [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Ansi)]
         private unsafe delegate int GetFullPathNameA(string lpFileName, int nBufferLength, StringBuilder lpBuffer, IntPtr lpFilePart);
-        private GetFullPathNameW GetFullPathNamePtrW;
-        private GetFullPathNameA GetFullPathNamePtrA;
+        private GetFullPathNameW? GetFullPathNamePtrW;
+        private GetFullPathNameA? GetFullPathNamePtrA;
 
-        public string GetFullPathName(string lpFileName)
+        public string? GetFullPathName(string lpFileName)
         {
+            if (GetFullPathNamePtrW == null)
+                throw new ObjectDisposedException(nameof(SimplePlatform));
+            if (GetFullPathNamePtrA == null)
+                throw new ObjectDisposedException(nameof(SimplePlatform));
+
             StringBuilder buffer = new StringBuilder(260);
             int bufferLen = buffer.Capacity;
             int ret;
@@ -103,9 +108,12 @@ namespace Joveler.DynLoader.Tests
         #region Posix
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate IntPtr magic_getpath1(IntPtr magicfile, int action);
-        private magic_getpath1 MagicGetPathPtr1;
-        public string MagicGetPath1(string magicFile)
+        private magic_getpath1? MagicGetPathPtr1;
+        public string? MagicGetPath1(string? magicFile)
         {
+            if (MagicGetPathPtr1 == null)
+                throw new ObjectDisposedException(nameof(SimplePlatform));
+
             IntPtr magicFilePtr = StringToHGlobalAuto(magicFile);
             try
             {
@@ -119,10 +127,13 @@ namespace Joveler.DynLoader.Tests
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        private delegate IntPtr magic_getpath2(string magicfile, int action);
-        private magic_getpath2 MagicGetPathPtr2;
-        public string MagicGetPath2(string magicFile)
+        private delegate IntPtr magic_getpath2(string? magicfile, int action);
+        private magic_getpath2? MagicGetPathPtr2;
+        public string? MagicGetPath2(string? magicFile)
         {
+            if (MagicGetPathPtr2 == null)
+                throw new ObjectDisposedException(nameof(SimplePlatform));
+
             IntPtr strPtr = MagicGetPathPtr2(magicFile, -1);
             return PtrToStringAuto(strPtr);
         }

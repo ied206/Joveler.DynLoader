@@ -47,7 +47,7 @@ namespace Joveler.DynLoader.Tests
         #region zlib Function Pointers
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int magic_version();
-        public magic_version MagicVersion;
+        public magic_version? MagicVersion;
         #endregion
     }
 }

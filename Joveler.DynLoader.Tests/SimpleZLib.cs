@@ -50,9 +50,9 @@ namespace Joveler.DynLoader.Tests
         #endregion
 
         #region HandleCustomData
-        protected override void HandleLoadData(object data)
+        protected override void HandleLoadData(object? data)
         {
-            if (!(data is SimpleZLibLoadData loadData))
+            if (data is not SimpleZLibLoadData loadData)
                 return;
 
             _isWindowsStdcall = loadData.IsWindowsStdcall;
@@ -105,26 +105,26 @@ namespace Joveler.DynLoader.Tests
         public unsafe uint Adler32(uint adler, byte* buf, uint len)
         {
             if (_isWindowsStdcall)
-                return _stdcall.Adler32(adler, buf, len);
+                return _stdcall.Adler32?.Invoke(adler, buf, len) ?? throw new ObjectDisposedException(nameof(SimpleZLib));
             else
-                return _cdecl.Adler32(adler, buf, len);
+                return _cdecl.Adler32?.Invoke(adler, buf, len) ?? throw new ObjectDisposedException(nameof(SimpleZLib));
         }
 
         public unsafe uint Crc32(uint crc, byte* buf, uint len)
         {
             if (_isWindowsStdcall)
-                return _stdcall.Crc32(crc, buf, len);
+                return _stdcall.Crc32?.Invoke(crc, buf, len) ?? throw new ObjectDisposedException(nameof(SimpleZLib));
             else
-                return _cdecl.Crc32(crc, buf, len);
+                return _cdecl.Crc32?.Invoke(crc, buf, len) ?? throw new ObjectDisposedException(nameof(SimpleZLib));
         }
 
-        public string ZLibVersion()
+        public string? ZLibVersion()
         {
             IntPtr strPtr = IntPtr.Zero;
             if (_isWindowsStdcall)
-                strPtr = _stdcall.ZLibVersionPtr();
+                strPtr = _stdcall.ZLibVersionPtr?.Invoke() ?? throw new ObjectDisposedException(nameof(SimpleZLib));
             else
-                strPtr = _cdecl.ZLibVersionPtr();
+                strPtr = _cdecl.ZLibVersionPtr?.Invoke() ?? throw new ObjectDisposedException(nameof(SimpleZLib));
             return Marshal.PtrToStringAnsi(strPtr);
         }
 
@@ -134,15 +134,15 @@ namespace Joveler.DynLoader.Tests
 
             [UnmanagedFunctionPointer(CallConv)]
             public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
-            public adler32 Adler32;
+            public adler32? Adler32;
 
             [UnmanagedFunctionPointer(CallConv)]
             public unsafe delegate uint crc32(uint crc, byte* buf, uint len);
-            public crc32 Crc32;
+            public crc32? Crc32;
 
             [UnmanagedFunctionPointer(CallConv)]
             public delegate IntPtr zlibVersion();
-            internal zlibVersion ZLibVersionPtr;
+            internal zlibVersion? ZLibVersionPtr;
 
         }
         internal class Cdecl
@@ -151,15 +151,15 @@ namespace Joveler.DynLoader.Tests
 
             [UnmanagedFunctionPointer(CallConv)]
             public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
-            public adler32 Adler32;
+            public adler32? Adler32;
 
             [UnmanagedFunctionPointer(CallConv)]
             public unsafe delegate uint crc32(uint crc, byte* buf, uint len);
-            public crc32 Crc32;
+            public crc32? Crc32;
 
             [UnmanagedFunctionPointer(CallConv)]
             public delegate IntPtr zlibVersion();
-            internal zlibVersion ZLibVersionPtr;
+            internal zlibVersion? ZLibVersionPtr;
         }
         #endregion
     }

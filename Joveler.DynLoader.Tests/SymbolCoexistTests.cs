@@ -36,15 +36,15 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class SymbolCoexistTests
     {
-        private static string[] _libPaths;
-        private static SymbolCoexist[] _zlibs;
+        private static string[] _libPaths = [];
+        private static SymbolCoexist[] _zlibs = [];
 
         [ClassInitialize]
         public static void Init(TestContext _)
         {
-            _libPaths = new string[] { TestSetup.TempUpstreamZLibPath, TestSetup.TempNgCompatZLibPath };
-            _zlibs = new SymbolCoexist[] { TestSetup.UpstreamZLib, TestSetup.NgCompatZLib };
-            _zlibs = _zlibs.Where(z => z != null).ToArray();
+            _libPaths = [TestSetup.TempUpstreamZLibPath, TestSetup.TempNgCompatZLibPath];
+            SymbolCoexist?[] libs = [TestSetup.UpstreamZLib, TestSetup.NgCompatZLib];
+            _zlibs = libs.Where(z => z != null).Select(z => z!).ToArray();
         }
 
         [TestMethod]
@@ -59,6 +59,8 @@ namespace Joveler.DynLoader.Tests
 
             foreach (SymbolCoexist z in _zlibs)
             {
+                Assert.IsNotNull(z.Adler32);
+
                 fixed (byte* firstBuf = first)
                 fixed (byte* secondBuf = second)
                 fixed (byte* fullBuf = full)
@@ -85,6 +87,8 @@ namespace Joveler.DynLoader.Tests
 
             foreach (SymbolCoexist z in _zlibs)
             {
+                Assert.IsNotNull(z.Crc32);
+
                 fixed (byte* firstBuf = first)
                 fixed (byte* secondBuf = second)
                 fixed (byte* fullBuf = full)
@@ -125,8 +129,8 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void CoexistCompareRawPtr()
         {
-            SymbolCoexist u = TestSetup.UpstreamZLib;
-            SymbolCoexist n = TestSetup.NgCompatZLib;
+            SymbolCoexist u = TestSetup.UpstreamZLib ?? throw new ObjectDisposedException(nameof(TestSetup));
+            SymbolCoexist n = TestSetup.NgCompatZLib ?? throw new ObjectDisposedException(nameof(TestSetup));
 
             Console.WriteLine($"{nameof(SymbolCoexist.adler32)}: upstream = 0x{u.Adler32RawPtr:X8}");
             Console.WriteLine($"{nameof(SymbolCoexist.adler32)}: zlib-ng  = 0x{n.Adler32RawPtr:X8}");

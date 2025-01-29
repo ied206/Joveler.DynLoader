@@ -34,13 +34,13 @@ namespace Joveler.DynLoader.Tests
     [TestClass]
     public class SimpleZLibTests
     {
-        private static SimpleZLib[] _zlibs;
+        private static SimpleZLib[] _zlibs = [];
 
         [ClassInitialize]
         public static void Init(TestContext _)
         {
-            _zlibs = new SimpleZLib[] { TestSetup.ExplicitStdcallZLib, TestSetup.ExplicitCdeclZLib, TestSetup.ImplicitZLib };
-            _zlibs = _zlibs.Where(z => z != null).ToArray();
+            SimpleZLib?[] libs = [TestSetup.ExplicitStdcallZLib, TestSetup.ExplicitCdeclZLib, TestSetup.ImplicitZLib];
+            _zlibs = libs.Where(z => z != null).Select(z => z!).ToArray();
         }
 
         [TestMethod]
@@ -100,7 +100,7 @@ namespace Joveler.DynLoader.Tests
         {
             foreach (SimpleZLib z in _zlibs)
             {
-                string verStr = z.ZLibVersion();
+                string? verStr = z.ZLibVersion();
                 Console.WriteLine(verStr);
             }
         }
@@ -108,7 +108,7 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void StdcallCreateDispose()
         {
-            string libPath = TestSetup.PackagedStdcallZLibPath;
+            string? libPath = TestSetup.PackagedStdcallZLibPath;
             using (SimpleZLib zlib = new SimpleZLib())
             {
                 zlib.LoadLibrary(libPath);
@@ -130,7 +130,7 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void StdcallManager()
         {
-            string libPath = TestSetup.PackagedStdcallZLibPath;
+            string? libPath = TestSetup.PackagedStdcallZLibPath;
             ManagerTemplate(libPath, true, true);
         }
 
@@ -141,7 +141,7 @@ namespace Joveler.DynLoader.Tests
             ManagerTemplate(libPath, false, false);
         }
 
-        private static void ManagerTemplate(string libPath, bool isWindowsStdcall, bool useTryCleanup)
+        private static void ManagerTemplate(string? libPath, bool isWindowsStdcall, bool useTryCleanup)
         {
             SimpleZLibManager manager = new SimpleZLibManager();
             SimpleZLibLoadData loadData = new SimpleZLibLoadData()
@@ -161,6 +161,7 @@ namespace Joveler.DynLoader.Tests
             }
             Assert.IsTrue(dupInitGuard);
 
+            Assert.IsNotNull(manager.Lib);
             Console.WriteLine(manager.Lib.ZLibVersion());
             Console.WriteLine($"UnknownRawPtr = 0x{manager.Lib.UnknownRawPtr:X8}");
             Console.WriteLine($"DeflateRawPtr = 0x{manager.Lib.DeflateRawPtr:X8}");
@@ -201,7 +202,8 @@ namespace Joveler.DynLoader.Tests
         public void DllNotFoundRetry()
         {
             string existLibPath = TestSetup.PackagedCdeclZLibPath;
-            string libDir = Path.GetDirectoryName(existLibPath);
+            string? libDir = Path.GetDirectoryName(existLibPath);
+            Assert.IsNotNull(libDir);
             string notExistLibPath = Path.Combine(libDir, "404_NOT_FOUND.dll");
             Console.WriteLine($"First-load  libPath: {notExistLibPath}");
             Console.WriteLine($"Second-load libPath: {existLibPath}");
@@ -232,7 +234,8 @@ namespace Joveler.DynLoader.Tests
         public void TryGlobalCleanup()
         {
             string existLibPath = TestSetup.PackagedCdeclZLibPath;
-            string libDir = Path.GetDirectoryName(existLibPath);
+            string? libDir = Path.GetDirectoryName(existLibPath);
+            Assert.IsNotNull(libDir);
             string notExistLibPath = Path.Combine(libDir, "404_NOT_FOUND.dll");
 
             SimpleZLibManager manager = new SimpleZLibManager();

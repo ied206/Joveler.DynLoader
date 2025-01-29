@@ -36,44 +36,53 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void PerOS()
         {
+            Assert.IsNotNull(TestSetup.PlatformLib);
             SimplePlatform p = TestSetup.PlatformLib;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Assert.IsNotNull(p);
 
-                // Assumption: No known non-unicode encoding support ancient Korean, non-ASCII latin, Chinese characters at once.
+                // Assumption: No known non-unicode encoding support ancient Korean Hangul, non-ASCII latin, Hanja at once.
                 const string uniFile = "ᄒᆞᆫ글ḀḘ韓國.txt";
                 const string asciiFile = "ASCII.txt";
                 string bclUniFullPath = Path.GetFullPath(uniFile);
                 string bclAsciiFullPath = Path.GetFullPath(asciiFile);
 
                 // UTF-16 mode (automatic)
-                string nativeAsciiFullPath = p.GetFullPathName(asciiFile);
+                string? nativeAsciiFullPath = p.GetFullPathName(asciiFile);
+                Assert.IsNotNull(nativeAsciiFullPath);
                 Assert.IsTrue(nativeAsciiFullPath.Equals(bclAsciiFullPath, StringComparison.Ordinal));
-                string nativeUniFullPath = p.GetFullPathName(uniFile);
+                string? nativeUniFullPath = p.GetFullPathName(uniFile);
+                Assert.IsNotNull(nativeUniFullPath);
                 Assert.IsTrue(nativeUniFullPath.Equals(bclUniFullPath, StringComparison.Ordinal));
 
                 // UTF-8 mode (manual)
                 p.ForceChangeUnicode(UnicodeConvention.Utf8);
                 nativeAsciiFullPath = p.GetFullPathName(asciiFile);
+                Assert.IsNotNull(nativeAsciiFullPath);
                 Assert.IsTrue(nativeAsciiFullPath.Equals(bclAsciiFullPath, StringComparison.Ordinal));
                 nativeUniFullPath = p.GetFullPathName(uniFile);
+                Assert.IsNotNull(nativeUniFullPath);
                 Assert.IsFalse(nativeUniFullPath.Equals(bclUniFullPath, StringComparison.Ordinal));
 
                 // UTF-16 mode (manual)
                 p.ForceChangeUnicode(UnicodeConvention.Utf16);
                 nativeAsciiFullPath = p.GetFullPathName(asciiFile);
+                Assert.IsNotNull(nativeAsciiFullPath);
                 Assert.IsTrue(nativeAsciiFullPath.Equals(bclAsciiFullPath, StringComparison.Ordinal));
                 nativeUniFullPath = p.GetFullPathName(uniFile);
+                Assert.IsNotNull(nativeUniFullPath);
                 Assert.IsTrue(nativeUniFullPath.Equals(bclUniFullPath, StringComparison.Ordinal));
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 Assert.IsNotNull(p);
 
-                string magicFile1 = p.MagicGetPath1(null);
-                string magicFile2 = p.MagicGetPath2(null);
+                string? magicFile1 = p.MagicGetPath1(null);
+                string? magicFile2 = p.MagicGetPath2(null);
+                Assert.IsNotNull(magicFile1);
+                Assert.IsNotNull(magicFile2);
                 Assert.IsTrue(magicFile1.Equals(magicFile2, StringComparison.Ordinal));
             }
             else

@@ -77,7 +77,7 @@ namespace Joveler.DynLoader.Tests
         #region Ghost Function Pointers
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         public unsafe delegate void not_exist();
-        public not_exist NotExist;
+        public not_exist? NotExist;
         #endregion
     }
 }
