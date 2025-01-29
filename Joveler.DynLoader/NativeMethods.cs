@@ -65,18 +65,18 @@ namespace Joveler.DynLoader
                 uint nSize,
                 IntPtr arguments); // va_list
 
-            public static string GetLastErrorMsg(int errorCode)
+            public static string? GetLastErrorMsg(int errorCode)
             {
                 uint flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM;
                 uint langId = MakeLangId(LANG_NEUTRAL, SUBLANG_DEFAULT);
                 uint ret = FormatMessageW(flags, IntPtr.Zero, (uint)errorCode, langId, out IntPtr buffer, 0, IntPtr.Zero);
-                if (ret == 0)
+                if (ret == 0 || buffer == IntPtr.Zero)
                     return null;
 
-                string errorMsg = Marshal.PtrToStringUni(buffer);
+                string? errorMsg = Marshal.PtrToStringUni(buffer);
                 Marshal.FreeHGlobal(buffer);
 
-                return errorMsg.Trim();
+                return errorMsg?.Trim() ?? null;
             }
 
             const ushort LANG_NEUTRAL = 0x00;
@@ -112,14 +112,14 @@ namespace Joveler.DynLoader
 
             [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
-            public static string DLError()
+            public static string? DLError()
             {
                 IntPtr ptr = DLErrorPtr();
                 if (ptr == IntPtr.Zero)
                     return null;
 
-                string str = Marshal.PtrToStringAnsi(ptr);
-                return str.Trim();
+                string? str = Marshal.PtrToStringAnsi(ptr);
+                return str?.Trim() ?? null;
             }
 
             [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]
@@ -142,14 +142,14 @@ namespace Joveler.DynLoader
 
             [DllImport(Library, EntryPoint = "dlerror", CallingConvention = CallingConvention.Cdecl)]
             private static extern IntPtr DLErrorPtr();
-            public static string DLError()
+            public static string? DLError()
             {
                 IntPtr ptr = DLErrorPtr();
                 if (ptr == IntPtr.Zero)
                     return null;
 
-                string str = Marshal.PtrToStringAnsi(ptr);
-                return str.Trim();
+                string? str = Marshal.PtrToStringAnsi(ptr);
+                return str?.Trim() ?? null;
             }
 
             [DllImport(Library, EntryPoint = "dlsym", CallingConvention = CallingConvention.Cdecl)]

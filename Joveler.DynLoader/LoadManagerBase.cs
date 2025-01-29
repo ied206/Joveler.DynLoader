@@ -49,7 +49,7 @@ namespace Joveler.DynLoader
         /// <summary>
         /// DynLoaderBase instance. Access imported extern functions from this instance.
         /// </summary>
-        public T Lib { get; protected set; }
+        public T? Lib { get; protected set; }
         #endregion
 
         #region Thread-Safe Load Lock Management
@@ -169,7 +169,7 @@ namespace Joveler.DynLoader
         /// Throws an InvalidOperationException when a native library has already been loaded.
         /// </remarks>
         /// <param name="libPath">A native library file to load.</param>
-        public void GlobalInit(string libPath)
+        public void GlobalInit(string? libPath)
         {
             GlobalInit(libPath, null);
         }
@@ -181,7 +181,7 @@ namespace Joveler.DynLoader
         /// Throws an InvalidOperationException when a native library has already been loaded.
         /// </remarks>
         /// <param name="loadData">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
-        public void GlobalInit(object loadData)
+        public void GlobalInit(object? loadData)
         {
             GlobalInit(null, loadData);
         }
@@ -194,7 +194,7 @@ namespace Joveler.DynLoader
         /// </remarks>
         /// <param name="libPath">A native library file to load.</param>
         /// <param name="loadData">Custom object to be passed to <see cref="DynLoaderBase{T}.ParseLoadData()"/>.</param>
-        public void GlobalInit(string libPath, object loadData)
+        public void GlobalInit(string? libPath, object? loadData)
         {
             lock (_loadLock)
             {
@@ -259,7 +259,7 @@ namespace Joveler.DynLoader
         private void InternalCleanup()
         {
             PreDisposeHook();
-            Lib.Dispose();
+            Lib?.Dispose();
             PostDisposeHook();
             Lib = null;
         }
