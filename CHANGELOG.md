@@ -2,6 +2,12 @@
 
 ## v2.x
 
+### v2.3.1
+
+Released on 2023-01.29.
+
+- Add nullability attributes.
+
 ### v2.3.0
 
 Released on 2023-09-03.

@@ -13,7 +13,7 @@
     <Description>Cross-platform native dynamic library loader for .NET.
 Provides advanced P/Invoke functionality using NativeLibrary, LoadLibrary and libdl.
 Supports Windows, Linux, and macOS.</Description>
-    <Copyright>Copyright (C) 2019-2023 Hajin Jang</Copyright>
+    <Copyright>Copyright (C) 2019-2025 Hajin Jang</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/ied206/Joveler.DynLoader</PackageProjectUrl>
     <PackageIcon>images\Logo.png</PackageIcon>
