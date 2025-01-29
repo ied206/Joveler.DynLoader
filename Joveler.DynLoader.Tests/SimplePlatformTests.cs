@@ -36,8 +36,7 @@ namespace Joveler.DynLoader.Tests
         [TestMethod]
         public void PerOS()
         {
-            Assert.IsNotNull(TestSetup.PlatformLib);
-            SimplePlatform p = TestSetup.PlatformLib;
+            SimplePlatform? p = TestSetup.PlatformLib;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
