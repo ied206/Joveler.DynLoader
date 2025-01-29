@@ -42,14 +42,14 @@ Follow these steps to use a wrapper library.
     public class Magic : IDisposable
     {
         internal static MagicLoadManager Manager = new MagicLoadManager();
-        internal static MagicLoader Lib => Manager.Lib;
+        internal static MagicLoader? Lib => Manager.Lib;
         public static void GlobalInit() => Manager.GlobalInit();
-        public static void GlobalInit(string libPath) => Manager.GlobalInit(libPath);
+        public static void GlobalInit(string? libPath) => Manager.GlobalInit(libPath);
         public static void GlobalCleanup() => Manager.GlobalCleanup();
     }
     ```
 1. Call one of `GlobalInit` functions to load native functions.
-    - You may call `GlobalInit(object loadData)` or `GlobalInit(string libPath, object loadData)` instead to pass a custom object. It would be handled by `DynLoaderBase<T>.HandleLoadData()` later.
+    - You may call `GlobalInit(object? loadData)` or `GlobalInit(string? libPath, object? loadData)` instead to pass a custom object. It would be handled by `DynLoaderBase<T>.HandleLoadData()` later.
 1. Call delegate instances to call corresponding native functions.
 
 ## DynLoaderBase
@@ -80,16 +80,21 @@ You should declare a delegate type and a delegate instance as a pair per one nat
 ```csharp
 [UnmanagedFunctionPointer(CallingConvention.Winapi)]
 public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
-public adler32 Adler32;
+public adler32? Adler32;
 
 [UnmanagedFunctionPointer(CallingConvention.Winapi)]
 public unsafe delegate uint crc32(uint crc, byte* buf, uint len);
-public crc32 Crc32;
+public crc32? Crc32;
 
 [UnmanagedFunctionPointer(CallingConvention.Winapi)]
 public delegate IntPtr zlibVersion();
-private zlibVersion ZLibVersionPtr;
-public string ZLibVersion() => Marshal.PtrToStringAnsi(ZLibVersionPtr());
+private zlibVersion? ZLibVersionPtr;
+public string? ZLibVersion()
+{
+    if (ZLibVersionPtr == null)
+        return null; 
+    return Marshal.PtrToStringAnsi(ZLibVersionPtr()) ?? string.Empty;
+}
 ```
 
 ### Constructor
@@ -115,18 +120,18 @@ public void LoadLibrary();
 /// Load a native dynamic library from a given path.
 /// </summary>
 /// <param name="libPath">A native library file to load.</param>
-public void LoadLibrary(string libPath);
+public void LoadLibrary(string? libPath);
 /// <summary>
 /// Load a native dynamic library from a path of `DefaultLibFileName`, with custom object.
 /// </summary>
 /// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-public void LoadLibrary(object loadData);
+public void LoadLibrary(object? loadData);
 /// <summary>
 /// Load a native dynamic library from a given path, with custom object.
 /// </summary>
 /// <param name="libPath">A native library file to load.</param>
 /// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-public void LoadLibrary(string libPath, object loadData);
+public void LoadLibrary(string? libPath, object? loadData);
 ```
 
 After creating an instance of a derived class, make sure to call `LoadLibrary()` to load a native library. After that, you can invoke extern native functions via delegate instances.
@@ -134,9 +139,9 @@ After creating an instance of a derived class, make sure to call `LoadLibrary()`
 | Signature       | Description |
 |-----------------|-------------|
 | `LoadLibrary()` | Loads the default native library from the base system. Works only if `DefaultLibFileName` is not null. |
-| `LoadLibrary(string libPath)` | Loads specific native library from the path. |
-| `LoadLibrary(object loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary()`. |
-| `LoadLibrary(string libPath, object loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary(string libPath)`. |
+| `LoadLibrary(string? libPath)` | Loads specific native library from the path. |
+| `LoadLibrary(object? loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary()`. |
+| `LoadLibrary(string? libPath, object? loadData)` | Pass a custom object, which would be handled by `HandleLoadData()`. Otherwise it is equal to `LoadLibrary(string? libPath)`. |
 
 When it fails to find a native library, [DllNotFoundException](https://docs.microsoft.com/en-US/dotnet/api/system.dllnotfoundexception?view=netcore-3.1) is thrown. 
 
@@ -171,7 +176,7 @@ protected abstract void ResetFunctions();
 /// Handle custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
 /// </summary>
 /// <param name="data">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-protected virtual void HandleLoadData(object data) { }
+protected virtual void HandleLoadData(object? data) { }
 ```
 
 #### LoadFunctions()
@@ -249,9 +254,9 @@ public class SimpleZLibLoadData
 ```csharp
 private bool _isWindowsStdcall = true;
 
-protected override void HandleLoadData(object data)
+protected override void HandleLoadData(object? data)
 {
-    if (!(data is SimpleZLibLoadData loadData))
+    if (data is not SimpleZLibLoadData loadData)
         return;
 
     _isWindowsStdcall = loadData.IsWindowsStdcall;
@@ -261,14 +266,14 @@ internal class Stdcall
 {
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
-    public adler32 Adler32;
+    public adler32? Adler32;
 }
 
 internal class Cdecl
 {
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate uint adler32(uint adler, byte* buf, uint len);
-    public adler32 Adler32;
+    public adler32? Adler32;
 }
 
 protected override void LoadFunctions()
@@ -428,7 +433,7 @@ Windows often use UTF-16 LE, while many POSIX libraries use UTF-8 without BOM.
 | `UnicodeConvention` | `Utf16` | `Utf8` |
 | `UnicodeEncoding`   | `Encoding.UTF16` (UTF-16 LE) | `new UTF8Encoding(false)` (UTF-8 without BOM) |
 
-`string PtrToStringAuto(IntPtr ptr)`, `IntPtr StringToHGlobalAuto(string str)` and `IntPtr StringToCoTaskMemAuto(string str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on the value of the `UnicodeConvention` property.
+`string? PtrToStringAuto(IntPtr ptr)`, `IntPtr StringToHGlobalAuto(string? str)` and `IntPtr StringToCoTaskMemAuto(string? str)` is a wrapper methods of `Marshal.PtrToString*` and  `Marshal.StringTo*`. They decide which encoding to use automatically depending on the value of the `UnicodeConvention` property.
 
 **WARNING**: Native libraries may not follow the platform's default Unicode encoding convention! It is your responsibility to check which encoding library is used. For example, some cross-platform libraries which originated from the POSIX world do not use `wchar_t`, effectively using `ANSI` encoding on Windows instead of `UTF-16`. That is why you can overwrite the `UnicodeConvention` value after the class was initialized.
 
@@ -561,6 +566,7 @@ Place native libraries like this on .nupkg file:
 - runtimes\linux-arm\native\libz.so
 - runtimes\linux-arm64\native\libz.so
 - runtimes\osx-x64\native\libz.dylib
+- runtimes\osx-arm64\native\libz.dylib
 ```
 
 For more info, read [NuGet package layout](https://docs.microsoft.com/en-us/nuget/create-packages/supporting-multiple-target-frameworks) document.
@@ -576,7 +582,7 @@ For the .NET Framework NuGet package, write an MSBuild script to handle native l
 <Import Project="$(MSBuildProjectDirectory)\SampleScript.netfx.targets" />
 ```
 
-You can freely adapt [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/SampleScript.netfx.targets) from the test code for your need. They are released in public domain, based on work of [System.Data.SQLite.Core](https://www.nuget.org/packages/System.Data.SQLite.Core/).
+You can freely adapt [SampleScript.netfx.targets](./Joveler.DynLoader.Tests/SampleScript.netfx.targets) from the test code for your need. It is released in public domain, based on work of [System.Data.SQLite.Core](https://www.nuget.org/packages/System.Data.SQLite.Core/).
 
 #### Example
 
@@ -713,7 +719,7 @@ internal delegate nuint LZ4F_getFrameInfo(
 internal static LZ4F_getFrameInfo GetFrameInfo;
 ```
 
-**Workaround on old C# version**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .NET world. 
+**Workaround on old .NET**: Use `UIntPtr` in the P/Invoke signature while using `ulong` in the .NET world. 
 
 `size_t` has a different size per architecture. It has the same size as the pointer size, using 4B on 32bit arch (x86, armhf) and using 8B on 64bit arch (x64, arm64). It is troublesome in cross-platform P/Invoke, as no direct counterpart exists in .NET.
 
@@ -721,7 +727,7 @@ You can exploit [UIntPtr](https://docs.microsoft.com/en-US/dotnet/api/system.uin
 
 I recommend using `UIntPtr` instead of `IntPtr` to represent `size_t` for safety. `IntPtr` is often used as a pure pointer itself while the `UIntPtr` is rarely used. Distinguishing `UIntPtr (value)` from the `IntPtr (address)` prevents the mistakes and crashes from confusing these two.
 
-**Example**: [Joveler.Compression.LZ4](https://github.com/ied206/Joveler.Compression/tree/master/Joveler.Compression.LZ4) use this trick.
+**Example**: [Joveler.Compression.LZ4](https://github.com/ied206/Joveler.Compression/tree/master/Joveler.Compression.LZ4) used this trick.
 
 ```csharp
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
