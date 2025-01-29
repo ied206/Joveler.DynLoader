@@ -122,8 +122,11 @@ namespace Joveler.DynLoader
         {
             ResetFunctions();
 
-            _hModule.Dispose();
-            _hModule = null;
+            if (_hModule != null)
+            {
+                _hModule.Dispose();
+                _hModule = null;
+            }
         }
         #endregion
 
@@ -140,7 +143,7 @@ namespace Joveler.DynLoader
         /// Load a native dynamic library from a given path.
         /// </summary>
         /// <param name="libPath">A native library file to load.</param>
-        public void LoadLibrary(string libPath)
+        public void LoadLibrary(string? libPath)
         {
             LoadLibrary(libPath, null);
         }
@@ -149,7 +152,7 @@ namespace Joveler.DynLoader
         /// Load a native dynamic library from a path of `DefaultLibFileName`, with custom object.
         /// </summary>
         /// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-        public void LoadLibrary(object loadData)
+        public void LoadLibrary(object? loadData)
         {
             LoadLibrary(null, loadData);
         }
@@ -159,7 +162,7 @@ namespace Joveler.DynLoader
         /// </summary>
         /// <param name="libPath">A native library file to load.</param>
         /// <param name="loadData">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-        public void LoadLibrary(string libPath, object loadData)
+        public void LoadLibrary(string? libPath, object? loadData)
         {
             // Should DynLoaderBase use default library filename?
             if (libPath == null)
@@ -263,7 +266,7 @@ namespace Joveler.DynLoader
         /// <summary>
         /// Handle of the native library.
         /// </summary>
-        private SafeHandle _hModule;
+        private SafeHandle? _hModule = null;
         private bool Loaded => _hModule != null && !_hModule.IsInvalid;
         #endregion
 
@@ -287,9 +290,13 @@ namespace Joveler.DynLoader
         /// <typeparam name="T">Delegate type of the native function.</typeparam>
         /// <param name="funcSymbol">Name of the exported function symbol.</param>
         /// <returns>Delegate instance of the native function.</returns>
-        /// <exception cref="EntryPointNotFoundException">Throwen if the given function symbol was not found.</exception>
+        /// <exception cref="EntryPointNotFoundException">Thrown if the given function symbol was not found.</exception>
+        /// <exception cref="DllNotFoundException">Thrown if the naitve library has not been loaded.</exception>
         protected T GetFuncPtr<T>(string funcSymbol) where T : Delegate
         {
+            if (_hModule == null || _hModule.IsInvalid)
+                throw new DllNotFoundException($"Library has not been loaded.");
+
             IntPtr funcPtr;
 #if NETCOREAPP
             funcPtr = NativeLibrary.GetExport(_hModule.DangerousGetHandle(), funcSymbol);
@@ -349,6 +356,9 @@ namespace Joveler.DynLoader
         /// <returns>Raw pointer address of the native function. Returns IntPtr.Zero if the symbol was not found.</returns>
         protected IntPtr GetRawFuncPtr(string funcSymbol)
         {
+            if (_hModule == null || _hModule.IsInvalid)
+                throw new DllNotFoundException($"Library has not been loaded.");
+
             IntPtr funcPtr = IntPtr.Zero;
 #if NETCOREAPP
             if (!NativeLibrary.TryGetExport(_hModule.DangerousGetHandle(), funcSymbol, out funcPtr))
@@ -403,7 +413,7 @@ namespace Joveler.DynLoader
         /// Handle custom object passed into <see cref="LoadManagerBase{T}.GlobalInit()"/>.
         /// </summary>
         /// <param name="data">Custom object has been passed to <see cref="LoadManagerBase{T}.GlobalInit()"/>.</param>
-        protected virtual void HandleLoadData(object data)
+        protected virtual void HandleLoadData(object? data)
         {
 
         }

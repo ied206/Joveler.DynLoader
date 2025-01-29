@@ -24,14 +24,14 @@
 */
 
 using System;
-#if NETCOREAPP3_1
+#if NETCOREAPP
 using System.Reflection;
 #endif
 using System.Runtime.InteropServices;
 
 namespace Joveler.DynLoader
 {
-#if NETCOREAPP3_1
+#if NETCOREAPP
     internal class NetSafeLibHandle : SafeHandle
     {
         public NetSafeLibHandle(string libPath) : base(IntPtr.Zero, true)
